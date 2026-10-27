@@ -353,8 +353,8 @@
                     joy.style.display = 'none';
                 } else {
                     joy.style.display = 'flex';
-                    joy.style.bottom = '8rem';
-                    joy.style.left = '1.5rem';
+                    joy.style.bottom = 'calc(8rem + max(0px, env(safe-area-inset-bottom)))';
+                    joy.style.left = 'max(1rem, env(safe-area-inset-left))';
                     joy.style.zIndex = '25';
                 }
             }
