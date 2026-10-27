@@ -55,6 +55,8 @@
         let scene, camera, renderer, clock;
         let player = null;
         let villagers = [];
+        let nearestCityNpc = null;
+        let cityTalkPrompt = null;
         let nileWaterMesh = null;
         let waterPosAttr = null;
         let waterWheels = [];
@@ -2748,38 +2750,79 @@
             };
             window.updatePlayerModelScale();
 
-            // Köy Sokaklarında, Pazarda, 3 Köprüde, Taş Ocağında ve Tapınakta Dolaşan 100 Canlı NPC
-            const tunicPalette = [0xffffff, 0xfef08a, 0xfed7aa, 0xe0f2fe, 0xfecdd3, 0xd9f99d];
-            const roles = ['villager', 'carrier', 'guard', 'villager'];
-            for (let i = 0; i < 100; i++) {
-                const role = roles[i % roles.length];
-                const npc = createVillagerCharacter(0.94 + (i % 3) * 0.04, tunicPalette[i % tunicPalette.length], role, false);
+            // Named city residents use the same detailed character models as the character showcase.
+            const cityNpcProfiles = [
+                { id: 'thoth', name: 'Thoth', title: 'Köy Bilgesi', role: 'horus_human', persona: 'priest', start: [-8, 11], route: [[-8, 11], [-16, 16], [-18, 7]], greeting: 'Nil\'in hesabı şaşmaz; Set\'in vergisi şaşar. Bugün ne arıyorsun?', rumor: 'Dikilitaştaki yazılar, Horus\'un tapınağında kayıp bir gözden söz ediyor.', work: 'Köylülerin hasat kayıtlarını tutuyorum. Buğdayı saymak, tanrıları saymaktan kolay.', joke: 'Bir kâtip neden Nil\'e taşınmış? Hesapları akıp gitsin diye.' },
+                { id: 'nefru', name: 'Nefru', title: 'Nil Çiftçisi', role: 'villager', persona: 'farmer', start: [13, 14], route: [[13, 14], [18, 18], [22, 12]], greeting: 'Şu başakları görüyor musun? Set vergiyi almadan biçebilirsek bugün bayram.', rumor: 'Kuzey tarlasının su kanalı tıkandı; Nil bile bazen işe geç kalıyor.', work: 'Buğdayı biç, demet yap, siloya taşı. Tanrılar bile sofraya oturuyor.', joke: 'Buğday neden tapınağa girmiş? Başak çıkarmaya.' },
+                { id: 'hapu', name: 'Hapu', title: 'Çiftçi ve Değirmenci', role: 'villager', persona: 'farmer', start: [20, -16], route: [[20, -16], [15, -20], [10, -15]], greeting: 'Öğütülecek tahıl çok, değirmen tek. Bir de üstüne vergi memuru var!', rumor: 'Pazarın batı kapısında bu gece gölgeler dolaşmış.', work: 'Un öğütür, ekmek pişirir, sonra yine un öğütürüm.', joke: 'Değirmen neden dedikodu dinlemez? Her şeyi ağzında öğütür.' },
+                { id: 'merit', name: 'Merit', title: 'Pazar Tüccarı', role: 'villager', persona: 'merchant', start: [-18, 4], route: [[-18, 4], [-28, 12], [-33, 6]], greeting: 'Baharat, keten, papirüs! Fiyatlar Set\'ten daha acımasız değil, söz.', rumor: 'Bir hırsız dün kendi gölgesini takip edip pazardan çıktı.', work: 'Tartım doğru, pazarlık uzun. İkisi de ticaretin parçası.', joke: 'Tüccar Nil\'e ne demiş? Akıntıya kapılma, fiyatı ben belirlerim.' },
+                { id: 'bek_nadif', name: 'Nadif', title: 'Gezgin Hırsız', role: 'bek', persona: 'thief', start: [-34, 24], route: [[-34, 24], [-45, 28], [-41, 12]], greeting: 'Ben mi? Sadece pazarı geziyorum. Kesenin neden hafiflediğini sonra konuşuruz.', rumor: 'Muhafızlar köprü başında nöbet değiştirirken gözlerini kapatıyor.', work: 'Kilit açarım. Bazen de insanlara doğru kapıyı gösteririm. Ücret karşılığı.', joke: 'Hırsız neden aynaya bakmaz? Aynadaki de ondan şüpheleniyor.' },
+                { id: 'bek_taia', name: 'Taia', title: 'Saraydan Kaçan Hırsız', role: 'bek', persona: 'thief', start: [-48, 38], route: [[-48, 38], [-58, 42], [-53, 26]], greeting: 'Sarayın kapısı kilitliydi. İçeriden açılması daha kolay oldu.', rumor: 'Set\'in mühürlü sandıkları batı yolundan taşınacakmış.', work: 'Ben iz bırakmam. Bıraktıysam da onu başka biri bulur.', joke: 'Hırsızın en sevdiği müzik? Cüzdanın şıngırtısı. Sessiz olanı.' },
+                { id: 'khepri', name: 'Khepri', title: 'Köprü Muhafızı', role: 'horus_human', persona: 'guard', start: [22, 2], route: [[22, 2], [25, 0], [22, -2]], greeting: 'Köprü açık. Ama şüpheli bir şey görürsen bana söyle; ben zaten bakıyorum.', rumor: 'Gece nöbetinde doğu kıyısından ışık parladığını gördüm.', work: 'Nöbet tutuyorum. Hırsızlar kaçıyor, sivrisinekler kalıyor.', joke: 'Muhafız neden köprüden geçmez? Vardiyası zaten köprüde.' },
+                { id: 'dedi', name: 'Dedi', title: 'Muhafız', role: 'bek', persona: 'guard', start: [31, 1], route: [[31, 1], [34, 0], [31, -1]], greeting: 'Geçiş serbest. Lütfen deveyle yarışmayı köprüde deneme.', rumor: 'Batı pazarında yeni bir hırsız görülmüş. Şapkasını tarif ettiler: yokmuş.', work: 'Köprüde düzeni sağlarım. En zor kısmı develere anlatmak.', joke: 'Muhafızın en sevdiği sayı? Nöbet çizelgesindeki kendi sırası.' },
+                { id: 'priest_amen', name: 'Amen', title: 'Dikilitaş Rahibi', role: 'villager', persona: 'priest', start: [-12, -20], route: [[-12, -20], [-17, -16], [-12, -12]], greeting: 'Horus\'un ışığı taşta, Nil\'in bereketi tarlada. İkisine de iyi bak.', rumor: 'Dikilitaş tamamlanırsa Set\'in karanlığı bu kıyıdan çekilecek.', work: 'Yazıtları okur, adakları düzenler ve kayıp sandaletleri bulurum.', joke: 'Rahip neden piramide geç kalmış? Yolu biraz fazla kutsal çıkmış.' },
+                { id: 'horus', name: 'Horus', title: 'Şahin Tanrı', role: 'horus_god', persona: 'god', start: [22, -40], route: [[22, -40], [18, -45], [24, -48]], greeting: 'Ölümlülerin cesareti, tanrıların gücünden daha şaşırtıcı olabilir.', rumor: 'Set, Horus Tapınağı\'nda gücümün bir parçasını saklıyor.', work: 'Nil\'i gözetliyorum. Bazen de insanların kendi başlarına çözebileceğine güveniyorum.', joke: 'Bir şahin neden vergi ödemez? Zaten her şeyi yukarıdan görüyor.' },
+                { id: 'set', name: 'Set', title: 'Çöl Tanrısı', role: 'set_god', persona: 'god', start: [-52, -94], route: [[-52, -94], [-46, -100], [-57, -105]], greeting: 'Benim adımı mı arıyordun? Çöl, davetsiz misafirleri uzun süre saklamaz.', rumor: 'Dikilitaşın yükselmesine izin vermeyeceğim. Bu konuda söylenti değil, tehdit.', work: 'Krallığı yönetiyorum. Herkesin memnun olmasını beklemiyorum.', joke: 'Set neden kum saatini sevmez? Kum ona bile geri sayım yapıyor.' },
+                { id: 'sabu', name: 'Sabu', title: 'Tahıl Taşıyıcısı', role: 'villager', persona: 'farmer', start: [16, 42], route: [[16, 42], [21, 46], [18, 52]], greeting: 'Bir çuval buğday mı? İki elim dolu. Üçüncü elimi arıyorum.', rumor: 'Silo kapısının yanında bir kedi nöbet tutuyor. Ücret istemiyor.', work: 'Tarladan siloya, silodan pazara. Ayaklarım haritayı ezberledi.', joke: 'Taşıyıcı neden şarkı söylemez? Yüksek notaya çıkınca çuval düşüyor.' },
+                { id: 'tamit', name: 'Tamit', title: 'Nil Kayıkçısı', role: 'villager', persona: 'merchant', start: [97, 30], route: [[97, 30], [103, 34], [100, 25]], greeting: 'Nil\'de yol kısa, akıntı uzundur. Nereye gideceğini söyle.', rumor: 'Doğu kıyısında papirüs arasında eski bir mühür bulmuşlar.', work: 'Kayığımı akıntıya bırakmam. Akıntı da beni bırakmaz.', joke: 'Kayıkçı neden karaya çıkmış? Suya biraz ara vermek istemiş.' },
+                { id: 'human_horus', name: 'Aset', title: 'Saray Elçisi', role: 'horus_human', persona: 'noble', start: [-24, -54], route: [[-24, -54], [-30, -58], [-26, -64]], greeting: 'Sarayda herkes fısıldıyor. Burada en azından Nil cevap veriyor.', rumor: 'Set\'in askerleri tapınağa giden yolu sıkı tutuyor.', work: 'Halkın dileklerini saraya taşıyorum. Bazılarını yüksek sesle, bazılarını hiç.', joke: 'Elçi neden mektubu yürütmüş? Mühürlü diye ata emanet edememiş.' },
+                { id: 'nebet', name: 'Nebet', title: 'Baharatçı', role: 'villager', persona: 'merchant', start: [-38, 58], route: [[-38, 58], [-44, 62], [-40, 68]], greeting: 'Kimyon, kişniş, tarçın. Çölün tozu hariç her şey var.', rumor: 'Pazarda bir hırsız baharat çalmış; üç gün hapşırmış.', work: 'Baharatı tartarım, müşteriyi dinlerim, Set\'in vergisini görmezden gelirim.', joke: 'Baharatçı neden sır saklayamaz? Her lafa biraz kimyon katar.' },
+                { id: 'baket', name: 'Baket', title: 'Doğu Tarlası Çiftçisi', role: 'villager', persona: 'farmer', start: [96, -22], route: [[96, -22], [102, -18], [98, -28]], greeting: 'Doğu tarlasında başak bol, gölge az. Bir şapka bulursan haber ver.', rumor: 'Nil yükselince papirüs sazlığına balıklar kadar söylenti de doluyor.', work: 'Buğday biçer, papirüs toplar, akşam olunca kayığı bağlarım.', joke: 'Çiftçi neden Nil\'e şiir yazmış? Kafiye kendiliğinden akmış.' },
+                { id: 'horus_guard', name: 'Paser', title: 'Tapınak Muhafızı', role: 'horus_human', persona: 'guard', start: [2, -74], route: [[2, -74], [7, -78], [2, -82]], greeting: 'Tapınak yolu açık değil. Önce ne aradığını bilmelisin.', rumor: 'Gece nöbetinde kapının arkasından bir kartal sesi geldi.', work: 'Kutsal yolu korurum. Kum fırtınası bile sıraya girer.', joke: 'Muhafız neden tapınakta fısıldar? Duvarların kulağı var, heykellerin de.' },
+                { id: 'menna', name: 'Menna', title: 'Nil Çiftçisi', role: 'villager', persona: 'farmer', start: [18, 62], route: [[18, 62], [22, 66], [17, 70]], greeting: 'Hasat iyi giderse kış rahat geçer. Vergi memuru gelmezse daha da rahat.', rumor: 'Bir deve pazarda kendi fiyatını düşürmüş. Tüccar hâlâ şaşkın.', work: 'Başakları tek tek biçiyorum. Acele edenler samanı da topluyor.', joke: 'Buğday başağı neden utanmış? Herkes onunla ekmek yapıyormuş.' },
+                { id: 'sutekh', name: 'Sutekh', title: 'Çöl Yolcusu', role: 'bek', persona: 'thief', start: [-66, 12], route: [[-66, 12], [-72, 18], [-68, 24]], greeting: 'Ben yolcuyum. Çantam hafif, hikâyem ağır. Sor bakalım.', rumor: 'Taş ocağında eski bir mızrak bulmuşlar. Kimse dokunmaya cesaret edemiyor.', work: 'Yol gösteririm. Bazen yolun kendisini de değiştiririm.', joke: 'Çöl yolcusu neden pusulaya güvenmez? Pusula hep kuzeyi gösterip duruyor.' },
+                { id: 'tahem', name: 'Tahem', title: 'Nil Kayıkçısı', role: 'villager', persona: 'merchant', start: [100, 55], route: [[100, 55], [105, 60], [101, 65]], greeting: 'Kayık hazır. Yolcu hazır. Ücret konusunda biraz daha konuşabiliriz.', rumor: 'Batı kıyısında bir rahip kayığını ters bağlamış; Nil hâlâ gülüyor.', work: 'Kayıkla insan, yük ve bazen çok inatçı bir keçi taşırım.', joke: 'Kayık neden ödevini yapmamış? Akıntıya bırakmış.' },
+                { id: 'zaya_city', name: 'Zaya', title: 'Ölümlü Gezgin', role: 'zaya', isFemale: true, skinTone: 'pearl', scale: 1.0, persona: 'thief', start: [-22, -34], route: [[-22, -34], [-28, -38], [-24, -28]], greeting: 'Set\'in muhafızları beni arıyor. Sebebini sorma; kesen hâlâ bende.', rumor: 'Sarayın arka kapısında gece yarısı bir ışık yanıyor.', work: 'Kervan yollarını ve kilitleri herkesten iyi bilirim.', joke: 'Bir hırsız neden sessiz yürür? Ayak sesleri de tanık sayılır.' },
+                { id: 'hathor_city', name: 'Hathor', title: 'Aşk ve Bereket Tanrıçası', role: 'hathor', isFemale: true, skinTone: 'golden', scale: 1.52, persona: 'goddess', start: [1, 24], route: [[1, 24], [-5, 28], [5, 31]], greeting: 'Nil\'in şarkısını duyuyor musun? İnsanlar birbirine yardım edince daha güzel çalıyor.', rumor: 'Dikilitaşın gölgesi kısalınca yeni bir çağ başlayacak.', work: 'Köylülerin hasat şenliğini ve adaklarını gözetiyorum.', joke: 'Tanrıça neden arpını Nil\'e bırakmış? Telleri biraz akort olsun diye.' },
+                { id: 'nephthys_city', name: 'Nephthys', title: 'Kanatlı Koruyucu', role: 'nephthys', isFemale: true, skinTone: 'pearl', scale: 1.54, persona: 'goddess', start: [-3, -58], route: [[-3, -58], [-8, -62], [1, -65]], greeting: 'Yolunu kaybedenleri korurum. Ama bazen doğru yol, en kolay yol değildir.', rumor: 'Horus Tapınağı\'nda mühürlü bir geçit açılmış.', work: 'Duat ile yaşayanlar diyarı arasındaki sınırı gözetiyorum.', joke: 'Kanatlı tanrıça neden gölge aramamış? Zaten kendininkini yanında taşıyor.' },
+                { id: 'isis_city', name: 'İsis', title: 'Büyü ve Mısır Kraliçesi', role: 'isis', isFemale: true, skinTone: 'pearl', scale: 1.55, persona: 'goddess', start: [8, -45], route: [[8, -45], [12, -50], [5, -53]], greeting: 'Bir büyünün gücü, onu kimin için kullandığında saklıdır.', rumor: 'Set, Horus\'un gücünü saklayan gözü tapınağa götürdü.', work: 'Nil halkının adaklarını ve eski büyüleri koruyorum.', joke: 'Büyücü neden alışveriş listesi tutmuş? Malzemeleri uçup gitmesin diye.' },
+                { id: 'astarte_city', name: 'Astarte', title: 'Savaş Tanrıçası', role: 'astarte', isFemale: true, skinTone: 'bronze', scale: 1.56, persona: 'guard', start: [-74, 112], route: [[-74, 112], [-69, 117], [-78, 120]], greeting: 'Savaş arıyorsan önce kime karşı olduğunu bil. Öfke tek başına kılıç değildir.', rumor: 'Taş ocağına giden yolun çevresinde Set\'in izcileri görüldü.', work: 'Kervanları ve taşçıları çöl akınlarından korurum.', joke: 'Savaş tanrıçası neden kalkanını cilalamış? Düşman önce kendi yansımasını görsün.' },
+                { id: 'anat_city', name: 'Anat', title: 'Fırtına ve Av Tanrıçası', role: 'anat', isFemale: true, skinTone: 'golden', scale: 1.55, persona: 'guard', start: [34, 66], route: [[34, 66], [39, 70], [32, 74]], greeting: 'Fırtına yaklaşırken kum bile yönünü değiştirir. Sen hazır mısın?', rumor: 'Doğu kıyısında geceleri mavi bir parıltı görülüyor.', work: 'Nil kıyısındaki avcıları ve uzak köy yollarını korurum.', joke: 'Av tanrıçası neden iz sürerken şarkı söylemez? Av da ritmi tutmasın diye.' },
+                { id: 'bastet_city', name: 'Bastet', title: 'Dans ve Kedi Tanrıçası', role: 'bastet', isFemale: true, skinTone: 'golden', scale: 1.50, persona: 'goddess', start: [-48, 48], route: [[-48, 48], [-54, 53], [-45, 57]], greeting: 'Bir kedi seni seçtiyse, artık sen onun yol arkadaşısın.', rumor: 'Pazar kedisi bu sabah bir muhafızın miğferinde uyuyakalmış.', work: 'Şenlikleri, evleri ve kedilerin uyku saatlerini korurum.', joke: 'Kedi neden tapınakta nöbet tutmuş? Zaten bütün gece gözünü kırpmıyor.' },
+                { id: 'nefret_city', name: 'Nefret', title: 'Nil Köylü Güzeli', role: 'female_villager', isFemale: true, skinTone: 'bronze', scale: 0.98, persona: 'farmer', start: [10, 36], route: [[10, 36], [15, 40], [12, 44]], greeting: 'Tarlada yardıma ihtiyacımız var. Bu başaklar kendi kendini biçmiyor.', rumor: 'Bu yıl Nil erken yükseldi; doğu tarlası bereketli olacak.', work: 'Buğdayı biçer, testileri taşır ve ailemi doyurmaya çalışırım.', joke: 'Köylü neden başakla konuşmuş? Belki biraz olsun baş verir diye.' },
+                { id: 'dancer_city', name: 'Tia', title: 'Tapınak Dansçısı', role: 'dancer', isFemale: true, skinTone: 'golden', scale: 0.99, persona: 'performer', start: [-19, 34], route: [[-19, 34], [-24, 39], [-17, 43]], greeting: 'Şenlik başlamak üzere. Davulun ritmini duyunca ayakların da anlatacak bir şey bulur.', rumor: 'Saray elçisi akşamki törende beklenmedik bir haber verecekmiş.', work: 'Hathor şenliklerinde dans eder, gençlere ritim öğretirim.', joke: 'Dansçı neden yere bakmış? Adımları kaçırmış mı diye.' }
+            ];
 
-                if (i < 60) {
-                    const startX = -125 + (i % 10) * 14;
-                    const startZ = -100 + Math.floor(i / 10) * 34;
-                    npc.root.position.set(startX, 0, startZ);
-                    npc.zoneBounds = { minX: -130, maxX: 24, minZ: -125, maxZ: 105 };
-                } else if (i < 78) {
-                    const bridgeZ = (i % 3 === 0) ? 0 : (i % 3 === 1 ? -75 : 75);
-                    const startX = 28 + ((i - 60) % 6) * 10;
-                    npc.root.position.set(startX, 0.58, bridgeZ + (i % 2 === 0 ? -2.2 : 2.2));
-                    npc.zoneBounds = { minX: 20, maxX: 95, minZ: bridgeZ - 3.2, maxZ: bridgeZ + 3.2 };
-                } else {
-                    const startX = 96 + (i % 6) * 14;
-                    const startZ = -85 + Math.floor((i - 78) / 6) * 45;
-                    npc.root.position.set(startX, 0, startZ);
-                    npc.zoneBounds = { minX: 92, maxX: 195, minZ: -95, maxZ: 95 };
-                }
-
-                npc.aiTarget.set(
-                    THREE.MathUtils.randFloat(npc.zoneBounds.minX, npc.zoneBounds.maxX),
-                    npc.root.position.y,
-                    THREE.MathUtils.randFloat(npc.zoneBounds.minZ, npc.zoneBounds.maxZ)
-                );
+            cityNpcProfiles.forEach(profile => {
+                const createCityCharacter = profile.isFemale
+                    ? window.EgyptCharacterEngine.createFemaleCharacter
+                    : window.EgyptCharacterEngine.createCharacter;
+                const npc = createCityCharacter.call(window.EgyptCharacterEngine, {
+                    name: profile.name,
+                    role: profile.role,
+                    scale: profile.scale || (profile.role === 'horus_god' || profile.role === 'set_god' ? 1.08 : 0.96 + (profile.id.length % 4) * 0.025),
+                    skinTone: profile.skinTone
+                });
+                npc.id = profile.id;
+                npc.title = profile.title;
+                npc.persona = profile.persona;
+                npc.isFemale = Boolean(profile.isFemale);
+                npc.personality = { greeting: profile.greeting, rumor: profile.rumor, work: profile.work, joke: profile.joke };
+                npc.route = profile.route.map(([x, z]) => new THREE.Vector3(x, 0, z));
+                npc.routeIndex = 0;
+                npc.aiWait = 1 + (profile.id.length % 4);
+                npc.aiTarget.copy(npc.route[0]);
+                npc.root.position.set(profile.start[0], 0, profile.start[1]);
+                npc.root.rotation.y = Math.PI;
+                npc.isGathering = false;
+                npc.workTimer = profile.persona === 'farmer' ? 2 + (profile.id.length % 5) : 0;
                 scene.add(npc.root);
                 villagers.push(npc);
-            }
+            });
+
+            cityTalkPrompt = document.createElement('button');
+            cityTalkPrompt.id = 'city-npc-talk-prompt';
+            cityTalkPrompt.className = 'fixed hidden left-1/2 -translate-x-1/2 bottom-36 z-40 px-5 py-3 rounded-xl border border-amber-300/70 bg-black/85 text-amber-100 font-black text-xs shadow-xl';
+            cityTalkPrompt.textContent = 'T · KONUŞ';
+            cityTalkPrompt.addEventListener('click', () => {
+                if (nearestCityNpc && window.NPCSystem) window.NPCSystem.startCharacterDialog(nearestCityNpc);
+            });
+            document.body.appendChild(cityTalkPrompt);
+            window.addEventListener('keydown', event => {
+                if (event.key.toLowerCase() === 't' && nearestCityNpc && window.NPCSystem) {
+                    window.NPCSystem.startCharacterDialog(nearestCityNpc);
+                }
+            });
 
             // 3D Portallar ve Etkileşimli Alanlar (Saray, Horus Tapınağı, Ra'nın Gemisi, Ahiret)
             window.realmPortals = [];
@@ -2813,6 +2856,7 @@
                 const nodeDefs = [
                     { x: 14.0, z: -15.0, color: 0xeab308, name: 'Nil Buğdayı' },
                     { x: 18.5, z: 8.0, color: 0xeab308, name: 'Altın Başak' },
+                    { x: -14.5, z: -14.0, color: 0xfbbf24, name: 'Horus Dikilitaşı' },
                     { x: 21.0, z: -38.0, color: 0xeab308, name: 'Sulak Vadi Buğdayı' },
                     { x: 12.5, z: 46.0, color: 0xeab308, name: 'Kuzey Çiftlik' },
                     { x: 19.0, z: 85.0, color: 0xeab308, name: 'Nil Deltası Buğdayı' },
@@ -2926,8 +2970,10 @@
                 updateJoy(e.clientX, e.clientY);
             });
 
-            window.addEventListener('pointerdown', (e) => {
-                if (e.target.closest('#joystick-zone')) return;
+            const canvas = renderer.domElement;
+            canvas.style.touchAction = 'none';
+            canvas.addEventListener('pointerdown', (e) => {
+                canvas.setPointerCapture(e.pointerId);
                 activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
                 if (activePointers.size === 2) {
                     const pts = Array.from(activePointers.values());
@@ -3093,36 +3139,62 @@
 
             if (player && !isFlying) {
                 if (window.EgyptCharacterEngine && player.pelvis) {
-                    window.EgyptCharacterEngine.animateEgyptCharacter(player, moving, mag, delta, elapsed);
+                    const animatePlayer = player.isFemale
+                        ? window.EgyptCharacterEngine.animateFemaleCharacter
+                        : window.EgyptCharacterEngine.animateEgyptCharacter;
+                    animatePlayer(player, moving, mag, delta, elapsed);
                 } else {
                     animateVillager(player, moving, mag, delta, elapsed);
                 }
             }
 
-            // 100 Yapay Zeka NPC Döngüsü (Kamera Mesafesine Göre Akıllı Eklem Güncellemesi)
+            // Role-based city routines, nearby reactions, and conversation prompt.
             const px = player ? player.root.position.x : 0;
             const pz = player ? player.root.position.z : 0;
+            let closestNpc = null;
+            let closestNpcDistSq = Infinity;
 
             for (let i = 0; i < villagers.length; i++) {
                 const v = villagers[i];
                 const distToPlayerSq = (v.root.position.x - px) ** 2 + (v.root.position.z - pz) ** 2;
+                if (distToPlayerSq < closestNpcDistSq) {
+                    closestNpc = v;
+                    closestNpcDistSq = distToPlayerSq;
+                }
 
                 if (v.aiWait > 0) {
                     v.aiWait -= delta;
-                    if (distToPlayerSq < 6400) animateVillager(v, false, 0, delta, elapsed);
+                    if (v.persona === 'farmer' && v.workTimer > 0) {
+                        v.workTimer = Math.max(0, v.workTimer - delta);
+                        v.isGathering = v.workTimer > 0;
+                        v.gatherType = 'harvest';
+                    }
+                    if (distToPlayerSq < 3600 && player) {
+                        const lookYaw = Math.atan2(px - v.root.position.x, pz - v.root.position.z);
+                        let lookDiff = lookYaw - v.root.rotation.y;
+                        while (lookDiff > Math.PI) lookDiff -= Math.PI * 2;
+                        while (lookDiff < -Math.PI) lookDiff += Math.PI * 2;
+                        v.root.rotation.y += lookDiff * Math.min(1, delta * 2.2);
+                        if (v.head) v.head.rotation.y = Math.sin(elapsed * 1.4 + i) * 0.08;
+                    }
+                    if (distToPlayerSq < 6400) {
+                        const animateNpc = v.isFemale
+                            ? window.EgyptCharacterEngine.animateFemaleCharacter
+                            : window.EgyptCharacterEngine.animateEgyptCharacter;
+                        animateNpc(v, false, 0, delta, elapsed, false);
+                    }
                 } else {
                     const dx = v.aiTarget.x - v.root.position.x;
                     const dz = v.aiTarget.z - v.root.position.z;
                     const dist = Math.hypot(dx, dz);
-                    if (dist < 0.5) {
-                        v.aiWait = 1.2 + Math.random() * 2.8;
-                        v.aiTarget.set(
-                            THREE.MathUtils.randFloat(v.zoneBounds.minX, v.zoneBounds.maxX),
-                            v.root.position.y,
-                            THREE.MathUtils.randFloat(v.zoneBounds.minZ, npcZBounds(v))
-                        );
+                    if (dist < 0.8) {
+                        v.aiWait = v.persona === 'thief' ? 0.8 + (i % 3) : 2 + (i % 5);
+                        v.routeIndex = (v.routeIndex + 1) % v.route.length;
+                        v.aiTarget.copy(v.route[v.routeIndex]);
+                        v.workTimer = v.persona === 'farmer' ? 3 + (i % 4) : 0;
+                        v.isGathering = false;
                     } else {
-                        const spd = 2.25;
+                        const spd = v.persona === 'thief' ? 2.7 : (v.persona === 'guard' ? 2.1 : 1.45 + (i % 3) * 0.2);
                         v.root.position.x += (dx / dist) * spd * delta;
                         v.root.position.z += (dz / dist) * spd * delta;
                         v.root.position.y = (v.root.position.x > 26 && v.root.position.x < 88 && Math.abs(v.root.position.z) < 5.4) ? 0.58 : 0.0;
@@ -3131,9 +3203,22 @@
                         let dRot = tRot - v.root.rotation.y;
                         while (dRot > Math.PI) dRot -= Math.PI * 2;
                         while (dRot < -Math.PI) dRot += Math.PI * 2;
-                        v.root.rotation.y += dRot * 0.14;
-                        if (distToPlayerSq < 8500) animateVillager(v, true, 0.78, delta, elapsed);
+                        v.root.rotation.y += dRot * Math.min(1, delta * 2.8);
+                        if (distToPlayerSq < 8500) {
+                            const animateNpc = v.isFemale
+                                ? window.EgyptCharacterEngine.animateFemaleCharacter
+                                : window.EgyptCharacterEngine.animateEgyptCharacter;
+                            animateNpc(v, true, spd / 2.4, delta, elapsed, false);
+                        }
                     }
+                }
+            }
+
+            nearestCityNpc = closestNpc && closestNpcDistSq < 4.8 ** 2 ? closestNpc : null;
+            if (cityTalkPrompt) {
+                cityTalkPrompt.classList.toggle('hidden', !nearestCityNpc);
+                if (nearestCityNpc) {
+                    cityTalkPrompt.textContent = `T · KONUŞ · ${nearestCityNpc.name} (${nearestCityNpc.title})`;
                 }
             }
 

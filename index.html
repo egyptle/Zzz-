@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gods of Egypt - Mısır Tanrıları Online MMORPG</title>
+    <title>Gods of Egypt - Yerel Mısır Mitolojisi Aksiyon Prototipi</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <link rel="stylesheet" href="gameHud.css">
@@ -213,24 +213,26 @@
             </div>
             <div>
                 <h1 class="hud-font-title text-lg sm:text-xl font-black tracking-wider gold-gradient-text uppercase">
-                    Gods of Egypt MMORPG
+                    Gods of Egypt
                 </h1>
-                <p class="text-[11px] text-amber-400/80 font-medium">Mısır Tanrıları Canlı Sosyal Ekonomi & Savaş Simülatörü</p>
+                <p class="text-[11px] text-amber-400/80 font-medium">Tek Oyunculu Mısır Mitolojisi Aksiyon Prototipi</p>
             </div>
         </div>
 
-        <!-- SAĞ ÜST: CANLI SUNUCU DURUMU -->
+        <!-- SAĞ ÜST: YEREL OYUN DURUMU -->
         <div class="flex items-center gap-3 text-xs">
-            <div class="status-indicator status-online">
-                <span id="online-count">1,428</span>
-                <span>Oyuncu Aktif</span>
+            <div class="status-indicator hud-glass text-amber-200">
+                <span>TEK OYUNCU</span>
             </div>
             <div class="hud-glass px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-yellow-300">
                 <span id="day-night-icon"></span>
                 <span id="header-night-status">Gündüz Çağı</span>
             </div>
             <button onclick="launchDirectRealm('karaktertanrilar.html')" class="gold-btn px-4 py-1.5 rounded-xl text-xs font-black">
-                Zırh & Karakter Vitrini
+                Tanrı Vitrini
+            </button>
+            <button onclick="launchDirectRealm('kiz.html')" class="action-pill-btn px-4 py-1.5 rounded-xl text-xs font-black">
+                Tanrıça Vitrini
             </button>
         </div>
     </header>
@@ -249,8 +251,8 @@
                     Set'in Zalim Hükümdarlığına <span class="gold-gradient-text">Kafa Tut!</span>
                 </h2>
                 <p class="text-sm sm:text-base text-amber-200/90 leading-relaxed">
-                    Oyuna Nil nehri kıyısında sıradan bir <strong>Ölümlü</strong> olarak başla. Papirüs ve buğday hasat et, bakır ve altın madeni kaz, vahşi timsahları avla ve devasa dikilitaşlar inşa et. 
-                    Tuzaklı piramide sızıp <strong>Horus'un Gözü'nü</strong> çalarak zalim Tanrı Set'i tahttan indir ya da <strong>2.5 kat devasa Altın Şahin veya Çakal</strong> formuna yükselerek göklerde savaş!
+                    Nil nehri kıyısında yerel prototip olarak oynanacak <strong>mitolojik akış</strong> içinde buğday ve papirüs topla, bakır ve taş çıkar, timsah avla ve dikilitaş inşa et. 
+                    Tapınağa sızıp <strong>Horus'un Gözü'nü</strong> alabilir veya <strong>Altın Şahin / Çakal Tanrı</strong> formuna yükselerek prototip savaş döngülerini deneyimleyebilirsin.
                 </p>
                 <div class="flex flex-wrap items-center gap-3 pt-2">
                     <button onclick="launchRealmInFrame('mısır.html')" class="gold-btn px-7 py-3.5 rounded-2xl text-base font-black flex items-center gap-2.5 shadow-2xl">
@@ -473,7 +475,7 @@
 
     <!-- ALT BİLGİ -->
     <footer class="relative z-10 p-6 text-center text-xs text-amber-400/60 border-t border-amber-500/20 hud-glass mt-12">
-        <p>Gods of Egypt (Mısır Tanrıları) Film Uyarlaması • Three.js WebGL2 MMORPG Motoru • Mobil ve Masaüstü Uyumlu</p>
+        <p>Özgün Mısır Mitolojisi Aksiyon Prototipi • Three.js WebGL • Mobil ve Masaüstü</p>
     </footer>
 
     <!-- SHARED JS SCRIPTS -->

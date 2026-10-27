@@ -159,7 +159,8 @@
         checkHitEnemies(player) {
             const pPos = player.root.position;
             const pRot = player.root.rotation.y;
-            const isGod = player.scale > 1.8;
+            const divineRoles = ['god_horus', 'god_set', 'horus_god', 'set_god', 'hathor', 'nephthys', 'isis', 'astarte', 'anat', 'bastet'];
+            const isGod = player.scale > 1.8 || divineRoles.includes(player.role);
             const attackRange = (isGod ? 4.2 : 2.5);
             const baseDamage = isGod ? 120 : (player.role === 'horus_human' ? 65 : 40);
             const damage = Math.floor(baseDamage * (0.9 + Math.random() * 0.25) * (1 + this.comboCounter * 0.15));
@@ -199,6 +200,13 @@
                         if (t.hp <= 0) {
                             t.isDead = true;
                             if (window.GameHUD) window.GameHUD.showToast(`☠️ ${t.name} YENİLDİ! Ganimetler Saçıldı!`, 'gold');
+
+                            if (t.name === 'Nil Timsahı' && window.GameState) {
+                                window.GameState.addResource('croc_hide', 1);
+                            }
+                            if (window.EgyptGatheringEngine) {
+                                window.EgyptGatheringEngine.onTargetDefeated(t);
+                            }
 
                             // Yere Altın Kan veya Altın Düşür
                             if (window.EgyptCollisionEngine) {

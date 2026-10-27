@@ -1,12 +1,32 @@
 /**
- * Gods of Egypt MMORPG - Unified Shared Game State Engine
- * Canlı Sosyal Ekonomi, Tanrıya Yükseliş, Altın Kan, Tuzaklar ve Ahiret Sistemi
+ * Gods of Egypt - Local Single-Player Game State Engine
+ * Yerel ilerleme, ekonomi, tanrıya yükseliş, savaş ve ahiret sistemi
  */
 
 (function(window) {
     'use strict';
 
     const STORAGE_KEY = 'gods_of_egypt_mmo_save_v1';
+
+    const CHARACTER_PROFILES = {
+        bek: { scale: 1.05, maxHp: 100, maxEnergy: 100 },
+        mortal: { scale: 1.05, maxHp: 100, maxEnergy: 100 },
+        villager: { scale: 0.98, maxHp: 80, maxEnergy: 80 },
+        horus_human: { scale: 1.6, maxHp: 250, maxEnergy: 150 },
+        horus_god: { scale: 2.15, maxHp: 500, maxEnergy: 300, fullRestore: true },
+        god_horus: { scale: 2.15, maxHp: 500, maxEnergy: 300, fullRestore: true },
+        set_god: { scale: 2.25, maxHp: 550, maxEnergy: 300, fullRestore: true },
+        god_set: { scale: 2.25, maxHp: 550, maxEnergy: 300, fullRestore: true },
+        zaya: { scale: 1.0, maxHp: 100, maxEnergy: 120, female: true, skinTone: 'pearl', name: 'Zaya' },
+        hathor: { scale: 1.52, maxHp: 220, maxEnergy: 200, female: true, skinTone: 'golden', name: 'Hathor' },
+        nephthys: { scale: 1.54, maxHp: 220, maxEnergy: 200, female: true, skinTone: 'pearl', name: 'Nephthys' },
+        isis: { scale: 1.55, maxHp: 220, maxEnergy: 220, female: true, skinTone: 'pearl', name: 'İsis' },
+        astarte: { scale: 1.56, maxHp: 240, maxEnergy: 170, female: true, skinTone: 'bronze', name: 'Astarte' },
+        anat: { scale: 1.55, maxHp: 230, maxEnergy: 180, female: true, skinTone: 'golden', name: 'Anat' },
+        bastet: { scale: 1.5, maxHp: 200, maxEnergy: 210, female: true, skinTone: 'golden', name: 'Bastet' },
+        female_villager: { scale: 0.98, maxHp: 90, maxEnergy: 110, female: true, skinTone: 'bronze', name: 'Nil Köylüsü' },
+        dancer: { scale: 0.99, maxHp: 95, maxEnergy: 130, female: true, skinTone: 'golden', name: 'Tapınak Dansçısı' }
+    };
 
     const DEFAULT_DATA = {
         player: {
@@ -58,10 +78,10 @@
             { id: 'aid_ra', title: 'Kaos Yılanı Apophis', desc: 'Ra\'nın gemisinde güneş duası bağışla.', done: false, progress: 0, target: 1, reward: 'Ra\'nın Güneş Kristali, 100 Altın' }
         ],
         chatLog: [
-            { sender: 'SİSTEM', text: 'Mısır Tanrıları Canlı Sosyal MMORPG dünyasına hoş geldin!', type: 'system', time: '10:00' },
+            { sender: 'SİSTEM', text: 'Mısır mitolojisi prototipine hoş geldin!', type: 'system', time: '10:00' },
             { sender: 'Set (Zalim Kral)', text: 'Bu toprakların tek efendisi benim! Vergilerini ödemeyenler Duat\'a sürgün edilecek!', type: 'god', time: '10:01' },
             { sender: 'Horus', text: 'Gözlerim olmadan zayıfım... Ölümlü Bek, tapınağımdaki tuzakları aşıp gözümü kurtar!', type: 'quest', time: '10:02' },
-            { sender: 'Ölümlü_Thutmose', text: 'Nil kıyısında buğday hasadı yapıyorum, obelisk için taş taşıyan var mı?', type: 'player', time: '10:03' }
+            { sender: 'Köylü Nefru', text: 'Nil kıyısındaki hasat için yardıma ihtiyacımız var.', type: 'npc', time: '10:03' }
         ],
         activeRealm: 'misir'
     };
@@ -151,9 +171,10 @@
         takeDamage(amount) {
             const p = this.state.player;
             p.hp = Math.max(0, p.hp - amount);
+            const divineRoles = ['god_horus', 'god_set', 'horus_god', 'set_god', 'hathor', 'nephthys', 'isis', 'astarte', 'anat', 'bastet'];
             
             // Eğer Tanrı formundaysa savaşta ALTIN KAN DÖKÜLÜR!
-            if (p.role === 'god_horus' || p.role === 'god_set') {
+            if (divineRoles.includes(p.role)) {
                 this.addChatMessage('SAVAŞ', `${p.name} hasar aldı! Yere parıldayan ALTIN KAN döküldü!`, 'blood');
                 if (window.spawnGoldenBloodInScene) {
                     window.spawnGoldenBloodInScene();
@@ -202,49 +223,35 @@
 
         setCharacterRole(role) {
             const p = this.state.player;
-            if (role === 'horus_god' || role === 'god_horus' || role === 'horus') {
-                p.role = 'god_horus';
-                p.scaleMultiplier = 2.5;
-                p.maxHp = 500;
-                p.hp = 500;
-                p.maxEnergy = 300;
-                p.energy = 300;
-                this.addChatMessage('İLÂHİ YÜKSELİŞ', `${p.name} 3.5m Altın Şahin Zırhında Tanrı HORUS formuna büründü! (Boyut 2.5x)`, 'god');
-            } else if (role === 'set_god' || role === 'god_set' || role === 'set') {
-                p.role = 'god_set';
-                p.scaleMultiplier = 2.5;
-                p.maxHp = 550;
-                p.hp = 550;
-                p.maxEnergy = 300;
-                p.energy = 300;
-                this.addChatMessage('İLÂHİ YÜKSELİŞ', `${p.name} 3.6m Çakal Zırhında Çöl Tanrısı SET formuna büründü! (Boyut 2.5x)`, 'god');
-            } else if (role === 'horus_human') {
-                p.role = 'horus_human';
-                p.scaleMultiplier = 1.6;
-                p.maxHp = 250;
-                p.hp = Math.min(250, Math.max(p.hp, 200));
-                p.maxEnergy = 150;
-                this.addChatMessage('DÖNÜŞÜM', `${p.name} 2.8m İnsan Horus (Prens) formuna geçti.`, 'system');
-            } else if (role === 'villager') {
-                p.role = 'villager';
-                p.scaleMultiplier = 0.98;
-                p.maxHp = 80;
-                p.hp = Math.min(80, p.hp);
-                p.maxEnergy = 80;
-                this.addChatMessage('DÖNÜŞÜM', `${p.name} sade Mısırlı Köylü kılığına büründü.`, 'system');
-            } else {
-                p.role = 'bek';
-                p.scaleMultiplier = 1.05;
-                p.maxHp = 100;
-                p.hp = Math.min(100, p.hp);
-                p.maxEnergy = 100;
-                this.addChatMessage('DÖNÜŞÜM', `${p.name} Ölümlü Usta Hırsız Bek formuna geçti.`, 'system');
+            const profile = CHARACTER_PROFILES[role];
+            if (!profile) return false;
+
+            const roleNameMap = {
+                bek: 'Bek', mortal: 'Bek', villager: 'Mısırlı Köylü', horus_human: 'İnsan Horus',
+                horus_god: 'Horus', god_horus: 'Horus', set_god: 'Set', god_set: 'Set',
+                zaya: 'Zaya', hathor: 'Hathor', nephthys: 'Nephthys', isis: 'İsis', astarte: 'Astarte',
+                anat: 'Anat', bastet: 'Bastet', female_villager: 'Nil Köylüsü', dancer: 'Tapınak Dansçısı'
+            };
+
+            p.role = role === 'mortal' ? 'bek' : role;
+            p.scaleMultiplier = profile.scale;
+            p.maxHp = profile.maxHp;
+            p.maxEnergy = profile.maxEnergy;
+            p.hp = profile.fullRestore ? profile.maxHp : Math.min(profile.maxHp, p.hp);
+            p.energy = profile.fullRestore ? profile.maxEnergy : Math.min(profile.maxEnergy, p.energy);
+
+            const roleName = profile.name || roleNameMap[role] || role;
+            if (!p.name || p.name === 'Bek' || p.name === 'Ölümlü Bek') {
+                p.name = roleName;
             }
+            this.addChatMessage('KARAKTER', `${roleName} formuna geçtin.`, profile.fullRestore ? 'god' : 'system');
+
             if (window.GameAudio) window.GameAudio.playSfx('god_ascend');
             this.saveState();
             if (window.updatePlayerModelScale) {
                 window.updatePlayerModelScale();
             }
+            return true;
         }
 
         ascendToGod(godType) {
@@ -519,6 +526,9 @@
         }
 
         startEventLoop() {
+            if (window.parent === window && document.getElementById('game-frame-container')) return;
+            window.addEventListener('pagehide', () => this.saveState(), { once: true });
+
             // Can yenilenmesi ve Gece/Gündüz döngüsü simülasyonu
             setInterval(() => {
                 const p = this.state.player;

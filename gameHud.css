@@ -305,8 +305,39 @@
 
 /* Quest Tracker */
 #quest-tracker {
-    max-height: 200px;
+    position: fixed;
+    top: 88px;
+    left: 16px;
+    z-index: 42;
+    width: min(310px, calc(100vw - 32px));
+    max-height: 190px;
     overflow-y: auto;
+    pointer-events: auto;
+}
+
+#quest-tracker .quest-track-card {
+    padding: 10px 12px;
+    border: 1px solid rgba(251, 191, 36, 0.55);
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(28, 17, 8, 0.94), rgba(11, 7, 4, 0.95));
+    box-shadow: 0 8px 26px rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(10px);
+}
+
+#quest-tracker .quest-track-action {
+    min-height: 34px;
+    padding: 6px 10px;
+    border: 1px solid rgba(253, 224, 71, 0.7);
+    border-radius: 8px;
+    background: rgba(245, 158, 11, 0.18);
+    color: #fde68a;
+    font-size: 10px;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+#quest-tracker .quest-track-action:hover {
+    background: rgba(245, 158, 11, 0.35);
 }
 
 /* Objective Progress Animation */
@@ -947,6 +978,167 @@
 
 .cine-preset-card:hover::after {
     left: 150%;
+}
+
+@media (max-width: 1024px) {
+    canvas {
+        touch-action: none;
+    }
+
+    .mmo-pc-unitframe {
+        top: max(8px, env(safe-area-inset-top));
+        left: 8px;
+        min-width: 0;
+        width: min(55vw, 225px);
+        padding: 6px;
+        gap: 7px;
+        border-width: 1px;
+        border-radius: 12px;
+    }
+
+    .mmo-pc-unitframe > div:last-child {
+        min-width: 0 !important;
+        flex: 1;
+    }
+
+    #hud-avatar-box {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        border-width: 1px;
+    }
+
+    .mmo-pc-realmbanner {
+        top: max(8px, env(safe-area-inset-top));
+        right: 8px;
+        left: auto;
+        transform: none;
+        max-width: 35vw;
+        padding: 5px;
+        gap: 4px;
+        border-width: 1px;
+        border-radius: 12px;
+    }
+
+    .mmo-pc-realmbanner > button:first-child > span:nth-child(n+2),
+    #hud-cam-btn > span:last-child,
+    #hud-studio-btn,
+    #hud-flight-btn {
+        display: none !important;
+    }
+
+    #hud-cam-btn {
+        width: 38px;
+        height: 38px;
+        justify-content: center;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    .mmo-pc-topright {
+        top: calc(max(8px, env(safe-area-inset-top)) + 58px);
+        right: 8px;
+        left: 8px;
+        justify-content: flex-end;
+        gap: 4px;
+    }
+
+    .mmo-pc-topright > .hud-glass {
+        min-width: 0;
+        gap: 4px;
+        padding: 4px 6px;
+        border-radius: 10px;
+    }
+
+    .mmo-pc-topright > .hud-glass > div:nth-child(n+4) {
+        display: none;
+    }
+
+    .mmo-pc-topright > .hud-glass > div {
+        padding-left: 4px;
+        padding-right: 4px;
+    }
+
+    .mmo-pc-topright > button {
+        min-height: 36px;
+        padding: 6px 8px !important;
+        border-radius: 10px;
+    }
+
+    .mmo-pc-topright > button:last-child > span:last-child {
+        display: none;
+    }
+
+    #joystick-zone {
+        top: auto !important;
+        bottom: max(12px, env(safe-area-inset-bottom)) !important;
+        left: max(12px, env(safe-area-inset-left)) !important;
+        width: 104px !important;
+        height: 104px !important;
+        z-index: 35 !important;
+        border-radius: 50%;
+    }
+
+    #joystick-knob {
+        width: 42px;
+        height: 42px;
+    }
+
+    #hud-mobile-controls {
+        right: max(12px, env(safe-area-inset-right)) !important;
+        bottom: max(12px, env(safe-area-inset-bottom)) !important;
+        width: min(46vw, 210px);
+        gap: 6px !important;
+    }
+
+    #hud-context-action-btn {
+        min-height: 44px;
+        padding: 8px 10px !important;
+        border-radius: 12px !important;
+        font-size: 11px !important;
+    }
+
+    #hud-mobile-controls > div {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 4px;
+        width: 100%;
+        max-width: none;
+    }
+
+    #hud-mobile-controls .action-pill-btn {
+        min-height: 34px;
+        justify-content: center;
+        padding: 5px 4px;
+        border-radius: 9px;
+        font-size: 10px;
+        white-space: nowrap;
+    }
+
+    #fpv-toggle-btn {
+        display: none !important;
+    }
+
+    #mmo-modal-container {
+        padding: max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom));
+    }
+
+    #mmo-modal-content {
+        max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 20px);
+        padding: 14px;
+        border-radius: 16px;
+    }
+
+    #quest-tracker {
+        top: 124px;
+        left: 8px;
+        width: min(250px, calc(100vw - 16px));
+        max-height: 130px;
+    }
+
+    #quest-tracker .quest-track-card {
+        padding: 8px;
+    }
 }
 
 

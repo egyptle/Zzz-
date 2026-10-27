@@ -1567,8 +1567,10 @@
                 updateJoy(e.clientX, e.clientY);
             });
 
-            window.addEventListener('pointerdown', (e) => {
-                if (e.target.closest('#joystick-zone')) return;
+            const canvas = renderer.domElement;
+            canvas.style.touchAction = 'none';
+            canvas.addEventListener('pointerdown', (e) => {
+                canvas.setPointerCapture(e.pointerId);
                 activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
                 if (activePointers.size === 2) {
                     const pts = Array.from(activePointers.values());
@@ -1735,7 +1737,7 @@
                 // Yerden Fırlayan Mızraklar (Zıplayarak Aşılabilir!)
                 for (let i = 0; i < floorSpearGrates.length; i++) {
                     const sp = floorSpearGrates[i];
-                    if (sp.group.position.y > -0.8 && Math.abs(player.root.position.z - (70 - i * 28)) < 2.2) {
+                    if (sp.group.position.y > -0.8 && Math.abs(player.root.position.x - sp.group.position.x) < 2.2 && Math.abs(player.root.position.z - sp.group.position.z) < 2.2) {
                         // Eğer oyuncu zıplamışsa (havadaysa) tuzaktan sıyrılır!
                         if (player.root.position.y < 0.65) {
                             window.lastTrapDamageTime = elapsed;
@@ -1744,6 +1746,10 @@
                             if (window.GameAudio) window.GameAudio.playSfx('trap_damage');
                             if (window.GameHUD) window.GameHUD.showToast('⚠️ YERDEN FIRLAYAN KAZIK TUZAĞI! -25 CAN! (ZIPLA!)', 'danger');
                             break;
+                        } else if (!sp.questCleared) {
+                            sp.questCleared = true;
+                            if (window.TutorialSystem) window.TutorialSystem.updateQuestProgress('survive_trap', 1);
+                            if (window.GameHUD) window.GameHUD.showToast('Tuzaktan sıçrayarak kurtuldun!', 'system');
                         }
                     }
                 }
@@ -1897,10 +1903,16 @@
                             const sp = floorSpearGrates[i];
                             const dist = Math.hypot(player.root.position.x - sp.group.position.x, player.root.position.z - sp.group.position.z);
                             if (dist < 2.2 && sp.group.position.y > -1.2) {
-                                window.lastTrapDamageTime = now;
-                                window.GameState.takeDamage(25);
-                                if (window.GameHUD) window.GameHUD.showToast('⚠️ ZEMİN MIZRAĞINA BASTIN! -25 CAN!', 'danger');
-                                break;
+                                if (player.root.position.y < 0.65) {
+                                    window.lastTrapDamageTime = now;
+                                    window.GameState.takeDamage(25);
+                                    if (window.GameHUD) window.GameHUD.showToast('⚠️ ZEMİN MIZRAĞINA BASTIN! -25 CAN!', 'danger');
+                                    break;
+                                } else if (!sp.questCleared) {
+                                    sp.questCleared = true;
+                                    if (window.TutorialSystem) window.TutorialSystem.updateQuestProgress('survive_trap', 1);
+                                    if (window.GameHUD) window.GameHUD.showToast('Tuzaktan sıçrayarak kurtuldun!', 'system');
+                                }
                             }
                         }
                     }

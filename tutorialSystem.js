@@ -19,7 +19,7 @@
         {
             id: 'movement',
             title: 'Hareket Et',
-            description: 'Ekranın sol altındaki joystick veya WASD tuşları ile karakterini hareket ettir. Nil nehri kıyısında dolaş!',
+            description: 'Sol alttaki joystick ile yürü. Kamerayı çevirmek için joystick dışındaki oyun alanında parmağını sürükle.',
             action: 'move_character',
             position: 'bottom-left',
             icon: 'map'
@@ -27,10 +27,18 @@
         {
             id: 'resources',
             title: 'Kaynak Topla',
-            description: 'E tuşuna basarak Nil\'den buğday ve papirüs topla. Bu kaynaklar obelisk inşaatı ve craft için gerekli.',
+            description: 'Buğdayların arasındaki altın halkaya yaklaş. Yakında TOPLA düğmesi görünür; E tuşu veya ekrandaki düğme hasadı başlatır.',
             action: 'collect_resources',
             position: 'bottom-right',
             icon: 'wheat'
+        },
+        {
+            id: 'obelisk',
+            title: 'Dikilitaşa Ulaş',
+            description: 'Aktif görev kartındaki OTO-GİT düğmesine bas. Pusula hedefi gösterecek ve karakterin dikilitaş şantiyesine yürüyecek.',
+            action: 'visit_obelisk',
+            position: 'center',
+            icon: 'obelisk'
         },
         {
             id: 'hud',
@@ -43,7 +51,7 @@
         {
             id: 'quests',
             title: 'Görevleri Gör',
-            description: 'Sağ alttaki "Görevler" butonuna tıkla ve mevcut görevleri incele.',
+            description: 'Ekrandaki aktif görev kartı hedefi ve ilerlemeyi gösterir. OTO-GİT hedefe götürür; görev listesinden diğer işleri seçebilirsin.',
             action: 'open_quests',
             position: 'bottom-right',
             icon: 'quests'
@@ -86,42 +94,52 @@
     const QUEST_DEFINITIONS = [
         {
             id: 'tutorial_1',
-            title: 'İlk Adımlar',
+            title: 'Nil\'in Altın Başakları',
             category: 'main',
-            description: 'Nil nehri kıyısında 5 buğday topla ve 3 kez hareket et.',
+            description: 'Set\'in vergi askerlerinden önce köylüler için Nil tarlasından 5 buğday biç.',
             objectives: [
-                { id: 'move', description: 'Karakterini hareket ettir (3 adım)', target: 3, current: 0, type: 'move' },
                 { id: 'harvest', description: 'Buğday topla (5 adet)', target: 5, current: 0, type: 'harvest_wheat' }
             ],
             rewards: { gold: 50, exp: 25, divineFavor: 5 },
             autoProgress: true,
-            onComplete: 'Open next quest: Mining Basics'
+            onComplete: 'Dikilitaşın çağrısını izle.'
         },
         {
             id: 'tutorial_2',
-            title: 'Maden Temelleri',
+            title: 'Dikilitaşın Çağrısı',
             category: 'main',
-            description: 'Çöl madeninde 3 bakır ve 5 taş çıkar.',
+            description: 'Horus\'un ışığı dikilitaşta sönüyor. Şantiyeye ulaş ve eski yazıtı incele.',
+            objectives: [
+                { id: 'visit_obelisk', description: 'Dikilitaş şantiyesine ulaş', target: 1, current: 0, type: 'visit_obelisk' }
+            ],
+            rewards: { gold: 60, exp: 35, divineFavor: 8 },
+            autoProgress: true,
+            prerequisite: 'tutorial_1'
+        },
+        {
+            id: 'tutorial_3',
+            title: 'Tanrıların Dikilitaşı',
+            category: 'main',
+            description: 'Dikilitaşın temelini güçlendirmek için şantiyeye bir kez 5 taş ve 5 odun bağışla.',
+            objectives: [
+                { id: 'donate_obelisk', description: 'Dikilitaşa malzeme bağışla', target: 1, current: 0, type: 'donate_obelisk' }
+            ],
+            rewards: { gold: 100, exp: 60, divineFavor: 15 },
+            autoProgress: true,
+            prerequisite: 'tutorial_2'
+        },
+        {
+            id: 'tutorial_4',
+            title: 'Çöl Ocağının Sırrı',
+            category: 'main',
+            description: 'Dikilitaşın yüzündeki yazıt, güneybatı madenindeki bakır ve taşı işaret ediyor.',
             objectives: [
                 { id: 'mine_copper', description: 'Bakır çıkar (3 adet)', target: 3, current: 0, type: 'mine_copper' },
                 { id: 'mine_stone', description: 'Taş çıkar (5 adet)', target: 5, current: 0, type: 'mine_stone' }
             ],
-            rewards: { gold: 75, exp: 40, divineFavor: 8 },
+            rewards: { gold: 125, exp: 70, divineFavor: 12 },
             autoProgress: true,
-            onComplete: 'Open next quest: Obelisk Contribution'
-        },
-        {
-            id: 'tutorial_3',
-            title: 'Obelisk Katkısı',
-            category: 'main',
-            description: 'Tanrıların dikilitaşına 10 taş ve 5 odun bağışla.',
-            objectives: [
-                { id: 'donate_stone', description: 'Taş bağışla (10 adet)', target: 10, current: 0, type: 'donate_stone' },
-                { id: 'donate_wood', description: 'Odun bağışla (5 adet)', target: 5, current: 0, type: 'donate_wood' }
-            ],
-            rewards: { gold: 100, exp: 60, divineFavor: 15 },
-            autoProgress: true,
-            onComplete: 'Tutorial complete! Main story unlocked.'
+            prerequisite: 'tutorial_3'
         },
         {
             id: 'main_1',
@@ -133,7 +151,7 @@
             ],
             rewards: { gold: 150, exp: 80, divineFavor: 20, item: 'Timsah Zırhı' },
             autoProgress: true,
-            prerequisite: 'tutorial_3'
+            prerequisite: 'tutorial_4'
         },
         {
             id: 'main_2',
@@ -142,7 +160,7 @@
             description: 'Horustapınak\'a sız ve tuzaklardan geçerek Horus\'un Gözü\'nü çal.',
             objectives: [
                 { id: 'enter_temple', description: 'Tapınağa gir', target: 1, current: 0, type: 'enter_realm_horustapinak' },
-                { id: 'survive_traps', description: '5 tuzaktan sağ çık', target: 5, current: 0, type: 'survive_trap' },
+                { id: 'survive_traps', description: '5 mızrak tuzağından zıplayarak geç (Space / ZIPLA)', target: 5, current: 0, type: 'survive_trap' },
                 { id: 'steal_eye', description: 'Horus\'un Gözü\'nü çal', target: 1, current: 0, type: 'steal_eye' }
             ],
             rewards: { gold: 500, exp: 200, divineFavor: 50, special: 'Tanrıya Yükseliş Gücü' },
@@ -181,28 +199,76 @@
             this.activeQuests = [];
             this.completedQuests = [];
             this.isVisible = false;
+            this.welcomeShown = false;
             this.init();
         }
 
         init() {
             // Load tutorial progress
-            const saved = localStorage.getItem('gods_of_egypt_tutorial_v1');
-            if (saved) {
-                const data = JSON.parse(saved);
-                this.currentStep = data.currentStep || 0;
+            let data = null;
+            try {
+                const saved = localStorage.getItem('gods_of_egypt_tutorial_v1');
+                if (saved) data = JSON.parse(saved);
+            } catch (error) {
+                console.warn('Görev kaydı okunamadı; yeni görev ilerlemesi başlatılıyor.', error);
+            }
+            if (data) {
+                this.currentStep = data.currentStep ?? 0;
                 this.completedSteps = data.completedSteps || [];
                 this.completedQuests = data.completedQuests || [];
+                this.welcomeShown = Boolean(data.welcomeShown);
+                this.activeQuests = (data.activeQuests || []).map(savedQuest => {
+                    const definition = QUEST_DEFINITIONS.find(quest => quest.id === savedQuest.id);
+                    if (!definition) return null;
+                    return {
+                        ...definition,
+                        objectives: definition.objectives.map(objective => {
+                            const savedObjective = savedQuest.objectives?.find(item => item.id === objective.id);
+                            return { ...objective, current: Math.min(objective.target, savedObjective?.current || 0) };
+                        }),
+                        startedAt: savedQuest.startedAt || Date.now()
+                    };
+                }).filter(Boolean);
             }
 
-            // Start with first quest
-            this.startQuest('tutorial_1');
+            if (this.activeQuests.length === 0) {
+                const nextMainQuest = QUEST_DEFINITIONS.find(quest =>
+                    quest.category === 'main' &&
+                    !this.completedQuests.includes(quest.id) &&
+                    (!quest.prerequisite || this.completedQuests.includes(quest.prerequisite))
+                );
+                if (nextMainQuest) this.startQuest(nextMainQuest.id);
+            } else {
+                this.updateQuestTracker();
+            }
+
+            if (!this.welcomeShown && this.currentStep === 0 && this.completedSteps.length === 0) {
+                this.welcomeShown = true;
+                this.saveProgress();
+                const showWelcome = () => setTimeout(() => this.showTutorialStep(), 800);
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', showWelcome, { once: true });
+                } else {
+                    showWelcome();
+                }
+            }
+
+            if (decodeURIComponent(window.location.pathname.toLowerCase()).includes('horustap')) {
+                setTimeout(() => this.updateQuestProgress('enter_realm_horustapinak', 1), 0);
+            }
         }
 
         saveProgress() {
             localStorage.setItem('gods_of_egypt_tutorial_v1', JSON.stringify({
                 currentStep: this.currentStep,
                 completedSteps: this.completedSteps,
-                completedQuests: this.completedQuests
+                completedQuests: this.completedQuests,
+                activeQuests: this.activeQuests.map(quest => ({
+                    id: quest.id,
+                    startedAt: quest.startedAt,
+                    objectives: quest.objectives.map(objective => ({ id: objective.id, current: objective.current }))
+                })),
+                welcomeShown: this.welcomeShown
             }));
         }
 
@@ -218,7 +284,10 @@
                 this.showTutorialStep();
                 return true;
             }
-            return false;
+            this.completedSteps.push(this.currentStep);
+            this.saveProgress();
+            this.hideTutorial();
+            return true;
         }
 
         skipTutorial() {
@@ -304,6 +373,7 @@
 
             this.activeQuests.push(quest);
             this.saveProgress();
+            this.updateQuestTracker();
             
             if (window.GameHUD) {
                 window.GameHUD.showToast(`Yeni Görev Başladı: ${quest.title}`, 'gold');
@@ -403,34 +473,42 @@
 
             const activeQuests = this.getActiveQuests();
             if (activeQuests.length === 0) {
-                tracker.innerHTML = '<p class="text-xs text-amber-400/60">Aktif görev yok</p>';
+                tracker.innerHTML = '<div class="quest-track-card"><p class="text-xs text-amber-100 font-bold">Aktif görev yok</p><p class="text-[10px] text-amber-300/70 mt-1">Yeni görevler için görev listesini aç.</p></div>';
                 return;
             }
 
-            tracker.innerHTML = activeQuests.map(quest => {
+            tracker.innerHTML = activeQuests.slice(0, 1).map(quest => {
                 const progress = quest.objectives.reduce((sum, obj) => sum + (obj.current / obj.target), 0) / quest.objectives.length * 100;
                 return `
-                    <div class="hud-glass p-2.5 rounded-xl mb-2 border border-amber-500/30">
-                        <div class="flex items-center justify-between mb-1">
-                            <span class="text-xs font-bold text-amber-200">${quest.title}</span>
-                            <span class="text-[10px] text-amber-400 font-extrabold">${Math.round(progress)}%</span>
+                    <div class="quest-track-card">
+                        <div class="flex items-start justify-between gap-2 mb-1">
+                            <div class="min-w-0">
+                                <span class="text-[9px] uppercase tracking-wide text-amber-400 font-black">AKTİF GÖREV</span>
+                                <h3 class="text-xs font-black text-amber-100 truncate">${quest.title}</h3>
+                            </div>
+                            <span class="text-[10px] text-amber-300 font-black">${Math.round(progress)}%</span>
                         </div>
-                        <div class="w-full bg-black/50 rounded-full h-1.5 overflow-hidden mb-1.5">
+                        <p class="text-[10px] text-amber-200/75 mb-2">${quest.description}</p>
+                        <p id="quest-target-info" class="text-[10px] text-yellow-200 font-bold mb-1"></p>
+                        <div class="w-full bg-black/60 rounded-full h-1.5 overflow-hidden mb-2">
                             <div class="h-full bg-gradient-to-r from-amber-600 to-yellow-300 transition-all duration-300" style="width: ${progress}%"></div>
                         </div>
-                        ${quest.objectives.map(obj => `
-                            <div class="text-[10px] text-amber-300/80 mt-1 flex items-center justify-between gap-1">
-                                <div class="flex items-center gap-1 overflow-hidden">
-                                    <span class="${obj.current >= obj.target ? 'text-emerald-400 font-bold' : 'text-amber-400'}">${obj.current >= obj.target ? '✓' : '○'}</span>
-                                    <span class="truncate ${obj.current >= obj.target ? 'line-through opacity-50' : ''}">${obj.description} (${obj.current}/${obj.target})</span>
+                        ${quest.objectives.map(obj => {
+                            const done = obj.current >= obj.target;
+                            const canAuto = ['harvest_wheat', 'mine_copper', 'mine_stone', 'harvest_papyrus', 'visit_obelisk', 'donate_obelisk', 'hunt_croc', 'enter_realm_horustapinak', 'steal_eye'].includes(obj.type);
+                            return `
+                            <div class="text-[10px] text-amber-200/80 mt-1 flex items-center justify-between gap-2">
+                                <div class="flex min-w-0 items-center gap-1 overflow-hidden">
+                                    <span class="${done ? 'text-emerald-400 font-bold' : 'text-amber-400'}">${done ? '✓' : '○'}</span>
+                                    <span class="truncate ${done ? 'line-through opacity-50' : ''}">${obj.description} (${obj.current}/${obj.target})</span>
                                 </div>
-                                ${obj.current < obj.target ? `
-                                    <button onclick="window.EgyptGatheringEngine && window.EgyptGatheringEngine.startAutoQuest('${quest.id}', '${obj.type}', ${obj.target - obj.current})" class="mmo-auto-quest-btn text-[9px] px-2 py-0.5 rounded-md flex-shrink-0" title="Karakter otomatik olarak bu hedefe gitsin ve toplasın!">
-                                        ⚡ OTO-GİT
+                                ${!done && canAuto ? `
+                                    <button onclick="window.EgyptGatheringEngine && window.EgyptGatheringEngine.startAutoQuest('${quest.id}', '${obj.type}', ${obj.target - obj.current})" class="quest-track-action flex-shrink-0" title="Hedefe yürü ve etkileşimi başlat">
+                                        OTO-GİT
                                     </button>
                                 ` : ''}
                             </div>
-                        `).join('')}
+                        `;}).join('')}
                     </div>
                 `;
             }).join('');
@@ -480,6 +558,7 @@
 
             return quests.map(quest => {
                 const progress = quest.objectives.reduce((sum, obj) => sum + (obj.current / obj.target), 0) / quest.objectives.length * 100;
+                const nextObjective = quest.objectives.find(obj => obj.current < obj.target);
                 const rewardText = Object.entries(quest.rewards)
                     .map(([key, val]) => {
                         if (key === 'gold') return `${val} Altın`;
@@ -521,9 +600,11 @@
 
                         <div class="flex items-center justify-between pt-2.5 border-t border-amber-500/20">
                             <span class="text-[10px] text-amber-400/80">Ödül: ${rewardText}</span>
-                            <button onclick="window.GameHUD.closeModal(); window.EgyptGatheringEngine && window.EgyptGatheringEngine.startAutoQuest('${quest.id}', '${quest.objectives[0] ? quest.objectives[0].type : 'harvest_wheat'}', 5);" class="mmo-auto-quest-btn">
-                                🤖 OTO-GİT & KAS ⚡
-                            </button>
+                            ${nextObjective && ['harvest_wheat', 'mine_copper', 'mine_stone', 'visit_obelisk', 'donate_obelisk', 'hunt_croc', 'enter_realm_horustapinak', 'steal_eye'].includes(nextObjective.type) ? `
+                                <button onclick="window.GameHUD.closeModal(); window.EgyptGatheringEngine && window.EgyptGatheringEngine.startAutoQuest('${quest.id}', '${nextObjective.type}', ${nextObjective.target - nextObjective.current});" class="mmo-auto-quest-btn">
+                                    HEDEFE GİT
+                                </button>
+                            ` : ''}
                         </div>
                     </div>
                 `;

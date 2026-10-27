@@ -10,13 +10,6 @@
     // Dünyadaki Gerçek Fiziksel Kaynak Noktaları (Resource Nodes)
     const WORLD_NODES = {
         misir: [
-            // Nil Buğdayı Tarlaları (Doğu ve Batı Sulama Kanalları Arasındaki Verimli Topraklar)
-            { id: 'wheat_field_1', name: 'Bereketli Nil Buğdayı', type: 'harvest', resource: 'wheat', yield: 4, exp: 15, x: 14.0, y: 0.1, z: -15.0, castTime: 2.8, respawnSec: 12, icon: '🌾' },
-            { id: 'wheat_field_2', name: 'Altın Başak Tarlası', type: 'harvest', resource: 'wheat', yield: 4, exp: 15, x: 18.5, y: 0.1, z: 8.0, castTime: 2.8, respawnSec: 12, icon: '🌾' },
-            { id: 'wheat_field_3', name: 'Sulak Vadi Buğdayı', type: 'harvest', resource: 'wheat', yield: 5, exp: 18, x: 21.0, y: 0.1, z: -38.0, castTime: 2.8, respawnSec: 14, icon: '🌾' },
-            { id: 'wheat_field_4', name: 'Kuzey Çiftlik Buğdayı', type: 'harvest', resource: 'wheat', yield: 4, exp: 15, x: 12.5, y: 0.1, z: 46.0, castTime: 2.8, respawnSec: 12, icon: '🌾' },
-            { id: 'wheat_field_5', name: 'Nil Deltası Buğday Kümesi', type: 'harvest', resource: 'wheat', yield: 5, exp: 20, x: 19.0, y: 0.1, z: 85.0, castTime: 2.8, respawnSec: 15, icon: '🌾' },
-
             // Nil Papirüs Sazlıkları (Nehir Kıyısı)
             { id: 'papyrus_bed_1', name: 'Nil Kıyı Papirüsü', type: 'harvest', resource: 'papyrus', yield: 3, exp: 16, x: 30.5, y: 0.05, z: -25.0, castTime: 3.0, respawnSec: 15, icon: '📜' },
             { id: 'papyrus_bed_2', name: 'Kraliyet Papirüs Sazlığı', type: 'harvest', resource: 'papyrus', yield: 4, exp: 18, x: 31.0, y: 0.05, z: 32.0, castTime: 3.0, respawnSec: 15, icon: '📜' },
@@ -29,7 +22,7 @@
             { id: 'stone_quarry_2', name: 'Granit Taş Yatağı', type: 'mine', resource: 'stone', yield: 6, exp: 24, x: -74.0, y: 0.8, z: 124.0, castTime: 3.4, respawnSec: 16, icon: '🧱' },
 
             // Obelisk İnşaat Sahası
-            { id: 'obelisk_site', name: 'Devasa Obelisk İnşaatı', type: 'obelisk', resource: 'obelisk', yield: 0, exp: 35, x: 12.0, y: 0.2, z: 0.0, castTime: 2.5, respawnSec: 1, icon: '🏛️' }
+            { id: 'obelisk_site', name: 'Horus Dikilitaşı', type: 'obelisk', resource: 'obelisk', yield: 0, exp: 35, x: -14.5, y: 0.2, z: -14.0, castTime: 2.5, respawnSec: 1, icon: '🏛️' }
         ],
         ahiret: [
             { id: 'underworld_ore_1', name: 'Ruhlar Kanyonu Taşı', type: 'mine', resource: 'stone', yield: 4, exp: 30, x: -15.0, y: 0.2, z: -20.0, castTime: 3.2, respawnSec: 12, icon: '💀' },
@@ -48,12 +41,13 @@
             this.nodes = [];
             this.activeHarvest = null;
             this.nearestNode = null;
-            this.interactionDist = 3.2; // 3.2 metre etkileşim menzili
+            this.interactionDist = 4.0;
             this.castTimer = 0;
             this.castDuration = 0;
             this.isChanneling = false;
             this.channelNode = null;
             this.domElements = {};
+            this.waypointMarker = null;
 
             // Otomatik Göreve Gitme ve Otomatik Kasılma (Auto-Grind) Durumu
             this.autoState = {
@@ -111,6 +105,38 @@
                 depletedUntil: 0,
                 mesh: null
             }));
+
+            if (realm !== 'misir') return;
+
+            const fields = [
+                { id: 'west', name: 'Batı Nil Buğdayı', minX: 8.2, maxX: 25.8, minZ: -210, maxZ: 210, roads: [[0, 6], [24, 2.8], [-24, 2.8], [75, 5.5], [-75, 5.5], [150, 5.5], [-150, 5.5]] },
+                { id: 'east', name: 'Doğu Nil Buğdayı', minX: 88.5, maxX: 105.5, minZ: -160, maxZ: 160, roads: [[0, 6], [75, 5.5], [-75, 5.5]] }
+            ];
+
+            fields.forEach(field => {
+                for (let x = field.minX + 1.2; x <= field.maxX - 1.2; x += 2.4) {
+                    for (let z = field.minZ + 1.6; z <= field.maxZ - 1.6; z += 3.2) {
+                        if (field.roads.some(([center, halfWidth]) => Math.abs(z - center) < halfWidth)) continue;
+                        this.nodes.push({
+                            id: `wheat_${field.id}_${Math.round(x)}_${Math.round(z)}`,
+                            name: field.name,
+                            type: 'harvest',
+                            resource: 'wheat',
+                            yield: 4,
+                            exp: 15,
+                            x,
+                            y: 0.1,
+                            z,
+                            castTime: 2.8,
+                            respawnSec: 12,
+                            icon: '🌾',
+                            depleted: false,
+                            depletedUntil: 0,
+                            mesh: null
+                        });
+                    }
+                }
+            });
         }
 
         createDOM() {
@@ -197,6 +223,10 @@
         // ==========================================
         update(player, delta, elapsed) {
             if (!player || !player.root) return;
+            if (this.waypointMarker) {
+                this.waypointMarker.rotation.y += delta * 0.8;
+                this.waypointMarker.children[1].position.y = 3.0 + Math.sin(elapsed * 2.4) * 0.25;
+            }
             const px = player.root.position.x;
             const pz = player.root.position.z;
 
@@ -273,7 +303,7 @@
                 if (window.GameHUD) {
                     const realm = this.detectRealm();
                     if (realm === 'misir') {
-                        window.GameHUD.showToast('⚠️ Yakınında toplanacak kaynak yok! Nil buğday tarlasına [x:15, z:0] veya madene [x:-85, z:118] yaklaş!', 'danger');
+                        window.GameHUD.showToast('Yakında kaynak yok. Aktif görev kartındaki OTO-GİT düğmesi seni buğdaya veya madene götürür.', 'system');
                     } else if (realm === 'horustapinak') {
                         window.GameHUD.showToast('⚠️ Horus\'un Gözü tapınak sunağının tepesinde! [z: -115]', 'danger');
                     } else if (realm === 'ahiret') {
@@ -297,7 +327,14 @@
 
             // Obelisk İnşaatı Özel Kontrolü
             if (node.type === 'obelisk') {
-                if (window.GameHUD) window.GameHUD.contributeObelisk();
+                const contributionBefore = state.obelisk.playerContributed;
+                if (window.GameHUD) window.GameHUD.contributeObelisk(false);
+                if (state.obelisk.playerContributed > contributionBefore) {
+                    if (window.TutorialSystem) window.TutorialSystem.updateQuestProgress('donate_obelisk', 1);
+                    if (this.autoState.active && this.autoState.type === 'donate_obelisk') {
+                        this.completeAutoNavigation('Dikilitaşa malzeme bağışladın.');
+                    }
+                }
                 return;
             }
 
@@ -393,17 +430,6 @@
                 window.GameHUD.showToast(`🎉 +${node.yield} ${resName} toplandı! (+${node.exp} XP)`, 'gold');
             }
 
-            // Görev Sistemini Güncelle
-            if (window.TutorialSystem) {
-                if (node.resource === 'wheat') {
-                    window.TutorialSystem.updateQuestObjective('harvest_wheat', node.yield);
-                } else if (node.resource === 'copper') {
-                    window.TutorialSystem.updateQuestObjective('mine_copper', node.yield);
-                } else if (node.resource === 'stone') {
-                    window.TutorialSystem.updateQuestObjective('mine_stone', node.yield);
-                }
-            }
-
             // Eğer Otomatik Kasılma (Auto-Grind) Aktifse:
             if (this.autoState.active) {
                 this.autoState.remainingToGather -= node.yield;
@@ -444,7 +470,8 @@
         startAutoQuest(questId, objectiveType, countNeeded = 5) {
             // Aktif diyar kontrolü
             const realm = this.detectRealm();
-            if (realm !== 'misir') {
+            const templeObjective = realm === 'horustapinak' && objectiveType === 'steal_eye';
+            if (realm !== 'misir' && !templeObjective) {
                 if (window.GameHUD) window.GameHUD.showToast('Işınlanılıyor: Bu görev Nil Nehri & Başkent diyarında yer alıyor!', 'gold');
                 setTimeout(() => window.location.href = 'mısır.html', 500);
                 return;
@@ -469,6 +496,47 @@
             }
         }
 
+        setWaypoint(node) {
+            const scene = window.scene;
+            if (!scene || !window.THREE || !node) return;
+
+            if (!this.waypointMarker) {
+                const marker = new THREE.Group();
+                const ring = new THREE.Mesh(
+                    new THREE.TorusGeometry(2.1, 0.12, 8, 32),
+                    new THREE.MeshBasicMaterial({ color: 0xfde047, transparent: true, opacity: 0.95 })
+                );
+                ring.rotation.x = Math.PI / 2;
+                marker.add(ring);
+
+                const beam = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.2, 0.85, 6, 12, 1, true),
+                    new THREE.MeshBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.22, side: THREE.DoubleSide, depthWrite: false })
+                );
+                beam.position.y = 3;
+                marker.add(beam);
+
+                const arrow = new THREE.Mesh(
+                    new THREE.ConeGeometry(0.8, 1.5, 4),
+                    new THREE.MeshBasicMaterial({ color: 0xfff1a6 })
+                );
+                arrow.position.y = 6.2;
+                marker.add(arrow);
+
+                this.waypointMarker = marker;
+                scene.add(marker);
+            }
+
+            this.waypointMarker.position.set(node.x, node.y || 0, node.z);
+            this.waypointMarker.visible = true;
+        }
+
+        clearWaypoint() {
+            if (this.waypointMarker) this.waypointMarker.visible = false;
+            const targetInfo = document.getElementById('quest-target-info');
+            if (targetInfo) targetInfo.textContent = '';
+        }
+
         seekNextAutoNode() {
             if (!window.player) return;
             const px = window.player.root.position.x;
@@ -478,14 +546,53 @@
             if (this.autoState.type.includes('copper')) targetRes = 'copper';
             else if (this.autoState.type.includes('stone')) targetRes = 'stone';
             else if (this.autoState.type.includes('papyrus')) targetRes = 'papyrus';
+            else if (this.autoState.type.includes('obelisk')) targetRes = 'obelisk';
 
             // En yakın tüketilmemiş hedefi bul
             let bestNode = null;
             let minDist = Infinity;
 
-            for (let i = 0; i < this.nodes.length; i++) {
-                const n = this.nodes[i];
+            let candidates = this.nodes.filter(node => node.resource === targetRes && !node.depleted);
+            if (this.autoState.type === 'hunt_croc' && window.EgyptCombatEngine) {
+                candidates = window.EgyptCombatEngine.targets
+                    .filter(target => target.name === 'Nil Timsahı' && !target.isDead && target.mesh)
+                    .map((target, index) => ({
+                        id: `croc_target_${index}`,
+                        name: target.name,
+                        resource: 'croc_hide',
+                        x: target.mesh.position.x,
+                        y: target.mesh.position.y,
+                        z: target.mesh.position.z,
+                        combatTarget: target
+                    }));
+            } else if (this.autoState.type === 'enter_realm_horustapinak') {
+                const portal = (window.realmPortals || []).find(item => item.data.file.toLowerCase().includes('horustap'));
+                candidates = portal ? [{
+                    id: 'horus_temple_portal',
+                    name: 'Horus Tapınağı Portalı',
+                    resource: 'realm',
+                    x: portal.data.x,
+                    z: portal.data.z
+                }] : [];
+            } else if (this.autoState.type === 'steal_eye' && this.detectRealm() === 'horustapinak') {
+                candidates = [{
+                    id: 'horus_eye_altar',
+                    name: 'Horus\'un Gözü Sunağı',
+                    resource: 'eye_of_horus',
+                    x: 0,
+                    z: -115
+                }];
+            }
+
+            for (let i = 0; i < candidates.length; i++) {
+                const n = candidates[i];
                 if (n.resource === targetRes && !n.depleted) {
+                    const d = Math.hypot(px - n.x, pz - n.z);
+                    if (d < minDist) {
+                        minDist = d;
+                        bestNode = n;
+                    }
+                } else if (n.resource === 'croc_hide' || n.resource === 'realm') {
                     const d = Math.hypot(px - n.x, pz - n.z);
                     if (d < minDist) {
                         minDist = d;
@@ -494,8 +601,9 @@
                 }
             }
 
-            // Eğer hepsi tükenmişse bile birinin başına git
-            if (!bestNode) {
+            // Eğer kaynakların hepsi tükenmişse bile birinin başına git
+            const isSpecialTarget = ['hunt_croc', 'enter_realm_horustapinak', 'steal_eye'].includes(this.autoState.type);
+            if (!bestNode && !isSpecialTarget) {
                 for (let i = 0; i < this.nodes.length; i++) {
                     const n = this.nodes[i];
                     if (n.resource === targetRes) {
@@ -508,6 +616,7 @@
             if (bestNode) {
                 this.autoState.targetNode = bestNode;
                 this.autoState.targetPos = { x: bestNode.x, z: bestNode.z };
+                this.setWaypoint(bestNode);
                 if (this.domElements && this.domElements.autoTitle) {
                     this.domElements.autoTitle.textContent = `🤖 OTO-KASILMA: ${bestNode.name}`;
                     this.domElements.autoDesc.textContent = `Hedefe gidiliyor... Kalan: ${this.autoState.remainingToGather} Adet`;
@@ -525,8 +634,14 @@
 
             const px = player.root.position.x;
             const pz = player.root.position.z;
-            const tx = this.autoState.targetPos.x;
-            const tz = this.autoState.targetPos.z;
+            let tx = this.autoState.targetPos.x;
+            let tz = this.autoState.targetPos.z;
+            if (this.autoState.type === 'hunt_croc' && this.autoState.targetNode && this.autoState.targetNode.combatTarget) {
+                const targetPosition = this.autoState.targetNode.combatTarget.mesh.position;
+                tx = targetPosition.x;
+                tz = targetPosition.z;
+                this.autoState.targetPos = { x: tx, z: tz };
+            }
 
             const dx = tx - px;
             const dz = tz - pz;
@@ -535,9 +650,44 @@
             if (this.domElements && this.domElements.autoDesc) {
                 this.domElements.autoDesc.textContent = `Hedefe Kalan: ${dist.toFixed(1)}m | Gereken: ${this.autoState.remainingToGather} Adet`;
             }
+            const targetInfo = document.getElementById('quest-target-info');
+            if (targetInfo) {
+                targetInfo.textContent = `${this.autoState.targetNode ? this.autoState.targetNode.name : 'Hedef'} · ${dist.toFixed(1)} m`;
+            }
 
             // Hedefe Ulaşıldı mı? (< 2.2m)
             if (dist <= 2.2) {
+                if (this.autoState.type === 'visit_obelisk') {
+                    if (window.TutorialSystem) window.TutorialSystem.updateQuestProgress('visit_obelisk', 1);
+                    this.completeAutoNavigation('Dikilitaş şantiyesine ulaştın.');
+                    return;
+                }
+                if (this.autoState.type === 'enter_realm_horustapinak') {
+                    if (window.TutorialSystem) window.TutorialSystem.updateQuestProgress('enter_realm_horustapinak', 1);
+                    this.completeAutoNavigation('Horus Tapınağı portalına ulaştın.');
+                    return;
+                }
+                if (this.autoState.type === 'steal_eye') {
+                    if (window.GameState && window.GameState.state.player.hasEyeOfHorus) {
+                        this.completeAutoNavigation('Horus\'un Gözü ele geçirildi.');
+                    } else if (window.GameHUD) {
+                        window.GameHUD.triggerContextAction();
+                    }
+                    return;
+                }
+                if (this.autoState.type === 'hunt_croc') {
+                    if (this.autoState.targetNode && this.autoState.targetNode.combatTarget && !this.autoState.targetNode.combatTarget.isDead) {
+                        const attackYaw = Math.atan2(-dx, -dz);
+                        let attackDiff = attackYaw - player.root.rotation.y;
+                        while (attackDiff > Math.PI) attackDiff -= Math.PI * 2;
+                        while (attackDiff < -Math.PI) attackDiff += Math.PI * 2;
+                        player.root.rotation.y += attackDiff * Math.min(1.0, delta * 9.0);
+                        if (window.EgyptCombatEngine) window.EgyptCombatEngine.performAttack();
+                    } else {
+                        this.seekNextAutoNode();
+                    }
+                    return;
+                }
                 // Hedefe ulaşıldı! Otomatik hasatı başlat
                 if (this.autoState.targetNode && !this.autoState.targetNode.depleted) {
                     this.startGathering(this.autoState.targetNode);
@@ -612,6 +762,7 @@
             this.autoState.active = false;
             this.autoState.targetPos = null;
             this.autoState.targetNode = null;
+            this.clearWaypoint();
             if (this.domElements && this.domElements.autoBanner) {
                 this.domElements.autoBanner.classList.add('hidden');
             }
@@ -624,6 +775,7 @@
             this.autoState.active = false;
             this.autoState.targetPos = null;
             this.autoState.targetNode = null;
+            this.clearWaypoint();
             if (this.domElements && this.domElements.autoBanner) {
                 this.domElements.autoBanner.classList.add('hidden');
             }
@@ -632,6 +784,18 @@
             }
             if (window.GameAudio) {
                 window.GameAudio.playSfx('quest_complete');
+            }
+        }
+
+        onTargetDefeated(target) {
+            if (!this.autoState.active || this.autoState.type !== 'hunt_croc' || target.name !== 'Nil Timsahı') return;
+            this.autoState.remainingToGather -= 1;
+            if (this.autoState.remainingToGather <= 0) {
+                this.completeAutoNavigation('Nil kıyısındaki timsahlar alt edildi.');
+            } else {
+                setTimeout(() => {
+                    if (this.autoState.active) this.seekNextAutoNode();
+                }, 400);
             }
         }
     }

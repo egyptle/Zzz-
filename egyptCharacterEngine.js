@@ -1174,9 +1174,289 @@ function buildTextures(rendererInstance) {
         // ==========================================
         // 7. TAM KARAKTER ANATOMİSİ VE 2016 FİLMİ TANRI ZIRHLARI
         // ==========================================
+        function createFemaleCharacter(config) {
+            if (!window.textures || !window.textures.linenTex) {
+                window.textures = Object.assign({}, buildTextures(window.renderer || null), window.textures || {});
+            }
+
+            const {
+                name,
+                role = 'female_villager',
+                scale = 1,
+                skinTone = 'pearl'
+            } = config;
+            const appearance = {
+                zaya: { cloth: 0x0e7490, metal: 0xc8922e, gem: 0x38bdf8, skin: 0xda9e7a, hair: 0x17120e },
+                hathor: { cloth: 0xc47712, metal: 0xf3c64e, gem: 0xffe083, skin: 0xca885e, hair: 0x2a160c },
+                nephthys: { cloth: 0x087e74, metal: 0xe7bd4d, gem: 0x51d4b8, skin: 0xda9e7a, hair: 0x17120e },
+                isis: { cloth: 0x174c9d, metal: 0xe7bd4d, gem: 0x82c9ff, skin: 0xda9e7a, hair: 0x17120e },
+                astarte: { cloth: 0x922c30, metal: 0xe9bf54, gem: 0xff8a50, skin: 0xb8744c, hair: 0x21100b },
+                anat: { cloth: 0x6a2a82, metal: 0xe9bf54, gem: 0xd5a2ff, skin: 0xca885e, hair: 0x21100b },
+                bastet: { cloth: 0x25232a, metal: 0xe9bf54, gem: 0xf6d84a, skin: 0xca885e, hair: 0x17120e },
+                female_villager: { cloth: 0x9a5b32, metal: 0xb99052, gem: 0xe8c878, skin: 0xb8744c, hair: 0x302018 },
+                dancer: { cloth: 0xa82d50, metal: 0xe9bf54, gem: 0xff91b2, skin: 0xca885e, hair: 0x2b160f }
+            }[role] || { cloth: 0x9a5b32, metal: 0xc8922e, gem: 0xe8c878, skin: 0xb8744c, hair: 0x302018 };
+
+            const root = new THREE.Group();
+            root.scale.setScalar(scale);
+            const pelvis = new THREE.Group();
+            pelvis.position.y = 0.91;
+            root.add(pelvis);
+            const skinMat = new THREE.MeshStandardMaterial({ map: window.textures.skinTex, color: appearance.skin, roughness: 0.62 });
+            const clothMat = new THREE.MeshStandardMaterial({ map: window.textures.linenTex, color: appearance.cloth, roughness: 0.78 });
+            const goldMat = new THREE.MeshStandardMaterial({ map: window.textures.goldTex, color: appearance.metal, metalness: 0.8, roughness: 0.28 });
+            const gemMat = new THREE.MeshStandardMaterial({ color: appearance.gem, metalness: 0.35, roughness: 0.2, emissive: appearance.gem, emissiveIntensity: 0.12 });
+            const hairMat = new THREE.MeshStandardMaterial({ color: appearance.hair, roughness: 0.82 });
+            const darkMat = new THREE.MeshStandardMaterial({ color: 0x241914, roughness: 0.75 });
+
+            const skirt = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.27, 0.72, 24, 2, true), clothMat);
+            skirt.position.y = -0.27;
+            skirt.castShadow = true;
+            skirt.receiveShadow = true;
+            pelvis.add(skirt);
+            const skirtHem = new THREE.Mesh(new THREE.TorusGeometry(0.265, 0.018, 6, 28), goldMat);
+            skirtHem.position.y = -0.63;
+            skirtHem.rotation.x = Math.PI / 2;
+            pelvis.add(skirtHem);
+
+            const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.08, 24), goldMat);
+            belt.position.y = 0.09;
+            pelvis.add(belt);
+            const spine = new THREE.Group();
+            spine.position.y = 0.12;
+            pelvis.add(spine);
+            const torso = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 16), skinMat);
+            torso.scale.set(0.205, 0.34, 0.145);
+            torso.position.y = 0.28;
+            torso.castShadow = true;
+            spine.add(torso);
+            const bodice = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), clothMat);
+            bodice.scale.set(0.214, 0.205, 0.16);
+            bodice.position.set(0, 0.39, 0.018);
+            spine.add(bodice);
+            const collar = new THREE.Mesh(new THREE.TorusGeometry(0.205, 0.035, 8, 28), goldMat);
+            collar.position.set(0, 0.48, 0.015);
+            collar.rotation.x = 0.15;
+            spine.add(collar);
+            const pendant = new THREE.Mesh(new THREE.OctahedronGeometry(0.055, 0), gemMat);
+            pendant.position.set(0, 0.39, 0.19);
+            spine.add(pendant);
+
+            const head = new THREE.Group();
+            head.position.set(0, 0.68, 0);
+            spine.add(head);
+            const face = new THREE.Mesh(new THREE.SphereGeometry(0.145, 20, 16), skinMat);
+            face.scale.set(0.86, 1.08, 0.9);
+            head.add(face);
+            const hairCap = new THREE.Mesh(new THREE.SphereGeometry(0.15, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.62), hairMat);
+            hairCap.position.y = 0.025;
+            head.add(hairCap);
+            [-1, 1].forEach(side => {
+                const lock = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.045, 0.36, 10), hairMat);
+                lock.position.set(side * 0.12, -0.14, -0.01);
+                lock.rotation.z = side * -0.08;
+                head.add(lock);
+                const eye = new THREE.Mesh(new THREE.SphereGeometry(0.018, 10, 8), darkMat);
+                eye.position.set(side * 0.052, -0.005, 0.124);
+                head.add(eye);
+            });
+            const crown = new THREE.Group();
+            crown.position.y = 0.14;
+            head.add(crown);
+            const crownBase = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.13, 0.08, 16), goldMat);
+            crown.add(crownBase);
+
+            if (role === 'hathor') {
+                [-1, 1].forEach(side => {
+                    const horn = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.26, 10), goldMat);
+                    horn.position.set(side * 0.12, 0.14, 0);
+                    horn.rotation.z = -side * 0.24;
+                    crown.add(horn);
+                });
+                const sun = new THREE.Mesh(new THREE.SphereGeometry(0.105, 16, 12), gemMat);
+                sun.position.y = 0.16;
+                crown.add(sun);
+            } else if (role === 'bastet') {
+                [-1, 1].forEach(side => {
+                    const ear = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.24, 4), goldMat);
+                    ear.position.set(side * 0.105, 0.14, 0);
+                    ear.rotation.z = -side * 0.18;
+                    crown.add(ear);
+                });
+            } else if (role === 'isis' || role === 'nephthys') {
+                const crownTop = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.095, 0.27, 12), role === 'isis' ? gemMat : goldMat);
+                crownTop.position.y = 0.18;
+                crown.add(crownTop);
+                const crownOrb = new THREE.Mesh(new THREE.SphereGeometry(0.075, 12, 10), goldMat);
+                crownOrb.position.y = 0.35;
+                crown.add(crownOrb);
+            } else if (role === 'anat' || role === 'astarte') {
+                const crest = new THREE.Mesh(new THREE.ConeGeometry(0.10, 0.28, 8), role === 'anat' ? gemMat : goldMat);
+                crest.position.y = 0.16;
+                crown.add(crest);
+            } else {
+                const jewel = new THREE.Mesh(new THREE.OctahedronGeometry(0.065, 0), gemMat);
+                jewel.position.y = 0.11;
+                crown.add(jewel);
+            }
+
+            const arms = { left: {}, right: {} };
+            [-1, 1].forEach(side => {
+                const key = side < 0 ? 'left' : 'right';
+                const shoulder = new THREE.Group();
+                shoulder.position.set(side * 0.22, 0.43, 0);
+                spine.add(shoulder);
+                const upperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.045, 0.27, 12), skinMat);
+                upperArm.position.y = -0.14;
+                shoulder.add(upperArm);
+                const elbow = new THREE.Group();
+                elbow.position.y = -0.27;
+                shoulder.add(elbow);
+                const forearm = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.032, 0.25, 12), skinMat);
+                forearm.position.y = -0.12;
+                elbow.add(forearm);
+                const hand = new THREE.Mesh(new THREE.SphereGeometry(0.043, 10, 8), skinMat);
+                hand.scale.set(0.75, 1.25, 0.65);
+                hand.position.y = -0.26;
+                elbow.add(hand);
+                const bracelet = new THREE.Mesh(new THREE.TorusGeometry(0.042, 0.009, 6, 16), goldMat);
+                bracelet.position.y = -0.22;
+                elbow.add(bracelet);
+                arms[key] = { shoulder, elbow };
+            });
+
+            const legs = { left: {}, right: {} };
+            [-1, 1].forEach(side => {
+                const key = side < 0 ? 'left' : 'right';
+                const hip = new THREE.Group();
+                hip.position.set(side * 0.085, -0.07, 0);
+                pelvis.add(hip);
+                const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.057, 0.36, 12), skinMat);
+                thigh.position.y = -0.18;
+                hip.add(thigh);
+                const knee = new THREE.Group();
+                knee.position.y = -0.35;
+                hip.add(knee);
+                const shin = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.038, 0.39, 12), skinMat);
+                shin.position.y = -0.19;
+                knee.add(shin);
+                const foot = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.055, 0.17), goldMat);
+                foot.position.set(0, -0.39, 0.04);
+                knee.add(foot);
+                legs[key] = { hip, knee };
+            });
+
+            const wings = ['nephthys', 'isis'].includes(role) ? { left: new THREE.Group(), right: new THREE.Group() } : null;
+            if (wings) {
+                [-1, 1].forEach(side => {
+                    const wing = side < 0 ? wings.left : wings.right;
+                    wing.position.set(side * 0.17, 0.48, -0.12);
+                    spine.add(wing);
+                    for (let featherIndex = 0; featherIndex < 6; featherIndex++) {
+                        const feather = new THREE.Mesh(
+                            new THREE.SphereGeometry(0.08, 8, 8),
+                            featherIndex % 2 === 0 ? goldMat : clothMat
+                        );
+                        feather.scale.set(0.8, 2.5 - featherIndex * 0.22, 0.34);
+                        feather.position.set(side * (0.12 + featherIndex * 0.035), 0.04 + featherIndex * 0.11, -0.015);
+                        feather.rotation.z = side * (0.32 + featherIndex * 0.08);
+                        wing.add(feather);
+                    }
+                });
+            }
+
+            const propGroup = new THREE.Group();
+            propGroup.position.set(0.28, 0.1, 0.04);
+            arms.right.elbow.add(propGroup);
+            if (['astarte', 'anat'].includes(role)) {
+                const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.025, 1.08, 8), goldMat);
+                shaft.position.y = 0.38;
+                shaft.rotation.z = -0.16;
+                propGroup.add(shaft);
+                const point = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.22, 8), gemMat);
+                point.position.set(0.08, 0.98, 0);
+                point.rotation.z = -0.16;
+                propGroup.add(point);
+            } else if (role === 'bastet' || role === 'dancer') {
+                const sistrum = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.018, 6, 18), goldMat);
+                sistrum.position.y = 0.22;
+                propGroup.add(sistrum);
+                const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.022, 0.27, 8), goldMat);
+                handle.position.y = 0.04;
+                propGroup.add(handle);
+            }
+
+            return { name, role, scale, root, pelvis, spine, head, arms, legs, wings, isFemale: true, phase: Math.random() * Math.PI * 2 };
+        }
+
+        function animateFemaleCharacter(char, isWalking, speedRatio, delta, elapsed) {
+            if (!char || !char.pelvis) return;
+            const { pelvis, spine, head, arms, legs, wings } = char;
+            const phase = char.phase || 0;
+            if (char.isAttacking) {
+                char.attackProgress = (char.attackProgress || 0) + delta * 3.8;
+                if (char.attackProgress >= 1) {
+                    char.isAttacking = false;
+                    char.attackProgress = 0;
+                } else {
+                    const strike = Math.sin(char.attackProgress * Math.PI);
+                    spine.rotation.y = -0.32 + strike * 0.62;
+                    arms.right.shoulder.rotation.x = -1.15 + strike * 0.8;
+                    arms.right.shoulder.rotation.z = 0.46 - strike * 0.58;
+                    arms.right.elbow.rotation.x = -0.62 + strike * 0.35;
+                    pelvis.rotation.z = strike * 0.05;
+                }
+            } else if (isWalking) {
+                char.phase += delta * 6.8 * Math.max(0.55, speedRatio);
+                const gait = char.phase;
+                pelvis.rotation.z = THREE.MathUtils.lerp(pelvis.rotation.z, Math.sin(gait) * 0.055, 0.18);
+                pelvis.rotation.y = Math.sin(gait) * 0.075;
+                spine.rotation.y = Math.sin(gait) * 0.05;
+                legs.left.hip.rotation.x = Math.sin(gait) * 0.43;
+                legs.right.hip.rotation.x = Math.sin(gait + Math.PI) * 0.43;
+                legs.left.knee.rotation.x = Math.max(0, -Math.cos(gait) * 0.45);
+                legs.right.knee.rotation.x = Math.max(0, -Math.cos(gait + Math.PI) * 0.45);
+                arms.left.shoulder.rotation.x = Math.sin(gait + Math.PI) * 0.32;
+                arms.right.shoulder.rotation.x = Math.sin(gait) * 0.32;
+                arms.left.elbow.rotation.x = -0.15;
+                arms.right.elbow.rotation.x = -0.18;
+            } else if (char.isGathering) {
+                const harvest = Math.sin(elapsed * 5.2 + phase);
+                pelvis.position.y = THREE.MathUtils.lerp(pelvis.position.y, 0.72, 0.18);
+                spine.rotation.x = THREE.MathUtils.lerp(spine.rotation.x, 0.42, 0.2);
+                head.rotation.x = THREE.MathUtils.lerp(head.rotation.x, 0.35, 0.18);
+                arms.right.shoulder.rotation.x = -0.7 + harvest * 0.35;
+                arms.right.shoulder.rotation.z = 0.28 + harvest * 0.12;
+                arms.left.shoulder.rotation.x = -0.62;
+                arms.left.shoulder.rotation.z = -0.22;
+                legs.left.hip.rotation.x = 0.34;
+                legs.right.hip.rotation.x = 0.28;
+            } else {
+                const breath = Math.sin(elapsed * 2.1 + phase);
+                pelvis.position.y = THREE.MathUtils.lerp(pelvis.position.y, 0.91 + breath * 0.004, 0.1);
+                pelvis.rotation.z = THREE.MathUtils.lerp(pelvis.rotation.z, Math.sin(elapsed * 0.65 + phase) * 0.018, 0.08);
+                spine.rotation.x = THREE.MathUtils.lerp(spine.rotation.x, breath * 0.012, 0.1);
+                head.rotation.y = THREE.MathUtils.lerp(head.rotation.y, Math.sin(elapsed * 0.7 + phase) * 0.07, 0.08);
+                arms.left.shoulder.rotation.x = THREE.MathUtils.lerp(arms.left.shoulder.rotation.x, 0.02, 0.1);
+                arms.right.shoulder.rotation.x = THREE.MathUtils.lerp(arms.right.shoulder.rotation.x, -0.04, 0.1);
+            }
+            if (wings) {
+                const flap = Math.sin(elapsed * (isWalking ? 3.2 : 1.5) + phase) * (isWalking ? 0.16 : 0.06);
+                wings.left.rotation.y = -flap;
+                wings.right.rotation.y = flap;
+                wings.left.rotation.z = -0.12 - flap;
+                wings.right.rotation.z = 0.12 + flap;
+            }
+        }
+
         function createCharacter(config) {
-            if (!window.textures) {
-                window.textures = buildTextures(window.renderer || null);
+            const worldTextures = window.textures || {};
+            if (!worldTextures.torsoVillager || !worldTextures.faceVillager) {
+                window.textures = Object.assign(
+                    {},
+                    buildTextures(window.renderer || null),
+                    worldTextures
+                );
             }
             if (window.scene && window.textures && window.textures.envMap && !window.scene.environment) {
                 window.scene.environment = window.textures.envMap;
@@ -1996,8 +2276,24 @@ function buildTextures(rendererInstance) {
         let scale = 1.05;
         let role = 'bek';
         let name = 'Ã–lÃ¼mlÃ¼ Bek';
+        const femaleRoles = {
+            zaya: { name: 'Zaya', scale: 1.0, skinTone: 'pearl' },
+            hathor: { name: 'Hathor', scale: 1.52, skinTone: 'golden' },
+            nephthys: { name: 'Nephthys', scale: 1.54, skinTone: 'pearl' },
+            isis: { name: 'İsis', scale: 1.55, skinTone: 'pearl' },
+            astarte: { name: 'Astarte', scale: 1.56, skinTone: 'bronze' },
+            anat: { name: 'Anat', scale: 1.55, skinTone: 'golden' },
+            bastet: { name: 'Bastet', scale: 1.5, skinTone: 'golden' },
+            female_villager: { name: 'Nil Köylüsü', scale: 0.98, skinTone: 'bronze' },
+            dancer: { name: 'Tapınak Dansçısı', scale: 0.99, skinTone: 'golden' }
+        };
+        const femaleProfile = femaleRoles[pRole];
 
-        if (pRole === 'god_horus' || pRole === 'horus_god' || pRole === 'horus') {
+        if (femaleProfile) {
+            role = pRole;
+            name = femaleProfile.name;
+            scale = femaleProfile.scale;
+        } else if (pRole === 'god_horus' || pRole === 'horus_god' || pRole === 'horus') {
             role = 'horus_god';
             scale = 2.15; // 3.5m Devasa AltÄ±n Åahin
             name = 'Horus (AltÄ±n Åahin)';
@@ -2027,11 +2323,9 @@ function buildTextures(rendererInstance) {
             if (scn) scn.remove(window.player.root);
         }
 
-        const char = createCharacter({
-            name: name,
-            role: role,
-            scale: scale
-        });
+        const char = femaleProfile
+            ? createFemaleCharacter({ name, role, scale, skinTone: femaleProfile.skinTone })
+            : createCharacter({ name, role, scale });
 
         if (prevPos) {
             char.root.position.copy(prevPos);
@@ -2057,8 +2351,10 @@ function buildTextures(rendererInstance) {
     window.EgyptCharacterEngine = {
         buildTextures: buildTextures,
         createCharacter: createCharacter,
+        createFemaleCharacter: createFemaleCharacter,
         createEgyptCharacter: createCharacter,
         animateCharacter: animateCharacter,
+        animateFemaleCharacter: animateFemaleCharacter,
         animateEgyptCharacter: animateCharacter,
         spawnPlayerCharacter: window.spawnPlayerCharacter
     };

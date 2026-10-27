@@ -11,6 +11,7 @@
             this.ctx = null;
             this.muted = false;
             this.ambientPlaying = false;
+            this.recordDestination = null;
             this.initOnFirstInteraction();
         }
 
@@ -45,6 +46,11 @@
             return this.ctx;
         }
 
+        routeOutput(ctx, node) {
+            node.connect(ctx.destination);
+            if (this.recordDestination) node.connect(this.recordDestination);
+        }
+
         toggleMute() {
             this.muted = !this.muted;
             return this.muted;
@@ -68,7 +74,7 @@
                     gain.gain.setValueAtTime(0.25, t);
                     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
                     osc.connect(gain);
-                    gain.connect(ctx.destination);
+                    this.routeOutput(ctx, gain);
                     osc.start(t);
                     osc.stop(t + 0.16);
                     break;
@@ -84,7 +90,7 @@
                     gain.gain.setValueAtTime(0.35, t);
                     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
                     osc.connect(gain);
-                    gain.connect(ctx.destination);
+                    this.routeOutput(ctx, gain);
                     osc.start(t);
                     osc.stop(t + 0.18);
 
@@ -96,7 +102,7 @@
                     bGain.gain.setValueAtTime(0.18, t);
                     bGain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
                     bell.connect(bGain);
-                    bGain.connect(ctx.destination);
+                    this.routeOutput(ctx, bGain);
                     bell.start(t);
                     bell.stop(t + 0.35);
                     break;
@@ -113,7 +119,7 @@
                         gain.gain.setValueAtTime(0.18, t + idx * 0.05);
                         gain.gain.exponentialRampToValueAtTime(0.0001, t + idx * 0.05 + 0.65);
                         osc.connect(gain);
-                        gain.connect(ctx.destination);
+                        this.routeOutput(ctx, gain);
                         osc.start(t + idx * 0.05);
                         osc.stop(t + idx * 0.05 + 0.65);
                     });
@@ -130,7 +136,7 @@
                     gain.gain.setValueAtTime(0.4, t);
                     gain.gain.exponentialRampToValueAtTime(0.01, t + 0.14);
                     osc.connect(gain);
-                    gain.connect(ctx.destination);
+                    this.routeOutput(ctx, gain);
                     osc.start(t);
                     osc.stop(t + 0.15);
                     break;
@@ -146,7 +152,7 @@
                     bGain.gain.setValueAtTime(0.5, t);
                     bGain.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
                     bass.connect(bGain);
-                    bGain.connect(ctx.destination);
+                    this.routeOutput(ctx, bGain);
                     bass.start(t);
                     bass.stop(t + 1.2);
 
@@ -159,7 +165,7 @@
                         g.gain.setValueAtTime(0.14, t + 0.15);
                         g.gain.exponentialRampToValueAtTime(0.001, t + 1.5);
                         osc.connect(g);
-                        g.connect(ctx.destination);
+                        this.routeOutput(ctx, g);
                         osc.start(t + 0.15);
                         osc.stop(t + 1.5);
                     });
@@ -176,7 +182,7 @@
                     gain.gain.setValueAtTime(0.5, t);
                     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
                     osc.connect(gain);
-                    gain.connect(ctx.destination);
+                    this.routeOutput(ctx, gain);
                     osc.start(t);
                     osc.stop(t + 0.25);
                     break;
@@ -193,7 +199,7 @@
                     gain.gain.setValueAtTime(0.35, t);
                     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
                     osc.connect(gain);
-                    gain.connect(ctx.destination);
+                    this.routeOutput(ctx, gain);
                     osc.start(t);
                     osc.stop(t + 0.6);
                     break;
@@ -209,7 +215,7 @@
                     gain.gain.setValueAtTime(0.45, t);
                     gain.gain.exponentialRampToValueAtTime(0.0001, t + 2.0);
                     osc.connect(gain);
-                    gain.connect(ctx.destination);
+                    this.routeOutput(ctx, gain);
                     osc.start(t);
                     osc.stop(t + 2.0);
                     break;
@@ -226,7 +232,7 @@
                         g.gain.setValueAtTime(0.2, t + i * 0.1);
                         g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.1 + 0.4);
                         o.connect(g);
-                        g.connect(ctx.destination);
+                        this.routeOutput(ctx, g);
                         o.start(t + i * 0.1);
                         o.stop(t + i * 0.1 + 0.4);
                     });

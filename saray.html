@@ -2210,8 +2210,10 @@
                 updateJoy(e.clientX, e.clientY);
             });
 
-            window.addEventListener('pointerdown', (e) => {
-                if (e.target.closest('#joystick-zone') || e.target.closest('#fpv-toggle-btn')) return;
+            const canvas = renderer.domElement;
+            canvas.style.touchAction = 'none';
+            canvas.addEventListener('pointerdown', (e) => {
+                canvas.setPointerCapture(e.pointerId);
                 activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
                 if (activePointers.size === 2) {
                     const pts = Array.from(activePointers.values());

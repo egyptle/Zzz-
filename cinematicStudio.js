@@ -51,6 +51,11 @@
             }
         }
 
+        routeOutput(node) {
+            node.connect(this.ctx.destination);
+            if (this.recordDestination) node.connect(this.recordDestination);
+        }
+
         // Inception / Dune Tarzı Low-Brass BRAAM Sesi (Tüyleri Diken Diken Eden Sinema Trombonu)
         playBraam() {
             if (!this.enabled) return;
@@ -104,7 +109,7 @@
             sub.connect(subGain);
             subGain.connect(gain);
 
-            gain.connect(this.ctx.destination);
+            this.routeOutput(gain);
 
             osc1.start(now);
             osc2.start(now);
@@ -146,7 +151,7 @@
 
             noise.connect(bpf);
             bpf.connect(gain);
-            gain.connect(this.ctx.destination);
+            this.routeOutput(gain);
 
             noise.start(now);
             noise.stop(now + dur);
@@ -175,7 +180,7 @@
 
             osc.connect(gain);
             metalOsc.connect(gain);
-            gain.connect(this.ctx.destination);
+            this.routeOutput(gain);
 
             osc.start(now);
             metalOsc.start(now);
@@ -200,7 +205,7 @@
             gain.gain.exponentialRampToValueAtTime(0.001, now + 1.1);
 
             osc.connect(gain);
-            gain.connect(this.ctx.destination);
+            this.routeOutput(gain);
 
             osc.start(now);
             osc.stop(now + 1.15);
@@ -231,7 +236,7 @@
             this.droneOsc1.connect(filter);
             this.droneOsc2.connect(filter);
             filter.connect(this.droneGain);
-            this.droneGain.connect(this.ctx.destination);
+            this.routeOutput(this.droneGain);
 
             this.droneOsc1.start(now);
             this.droneOsc2.start(now);
@@ -276,6 +281,8 @@
 
             // Kamera Sarsıntı Efekti
             this.shakeTrauma = 0;
+            this.lastCinePos = null;
+            this.lastCineLook = null;
 
             // Dahili Video Kayıt Sistemi (MediaRecorder)
             this.isRecording = false;
@@ -375,7 +382,7 @@
                 <div id="cine-title-card" class="absolute bottom-16 sm:bottom-20 left-1/2 -translate-x-1/2 text-center pointer-events-none opacity-0 transition-all duration-700 transform translate-y-4 z-30 max-w-[92vw]">
                     <div class="inline-flex flex-col items-center bg-gradient-to-t from-black/90 via-black/75 to-transparent px-10 py-5 rounded-3xl border-2 border-amber-400/60 backdrop-blur-md shadow-[0_0_40px_rgba(0,0,0,0.9)]">
                         <span id="cine-main-title" class="hud-font-title text-2xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-100 via-amber-300 to-yellow-500 tracking-widest drop-shadow-[0_4px_12px_rgba(245,158,11,0.7)]">
-                            ✦ GODS OF EGYPT MMORPG ✦
+                            ✦ GODS OF EGYPT ✦
                         </span>
                         <span id="cine-sub-title" class="text-xs sm:text-base font-bold text-amber-200 tracking-wider mt-1.5 drop-shadow">
                             Devasa Açık Dünya Nil Nehri & Başkent
@@ -761,7 +768,7 @@
         }
 
         copyHashtags() {
-            const tags = "#GodsOfEgypt #MMORPG #AncientEgypt #GamingCommunity #IndieGame #Threejs #WebGL #GameTrailer #ActionRPG";
+            const tags = "#GodsOfEgypt #AncientEgypt #MythologyGame #IndieGame #Threejs #WebGL #GameTrailer #ActionRPG";
             if (navigator.clipboard) {
                 navigator.clipboard.writeText(tags);
                 if (window.GameHUD) window.GameHUD.showToast('📋 Hashtag\'ler panoya kopyalandı! TikTok/Reels açıklamana yapıştırabilirsin!', 'gold');
@@ -807,15 +814,15 @@
                 this.dom.exitBtnContainer.style.display = 'block';
             }
 
-            // Hollywood Ortam Sesini Başlat
-            if (this.soundEnabled) {
-                this.audio.startDrone();
-                this.audio.playBraam();
-            }
-
             // İsteğe bağlı canvas video kaydını başlat
             if (recordVideo) {
                 this.startCanvasRecording();
+            }
+
+            // Start the soundtrack after the recorder is connected to its output.
+            if (this.soundEnabled) {
+                this.audio.startDrone();
+                this.audio.playBraam();
             }
 
             if (window.GameHUD) {
@@ -864,24 +871,49 @@
         // =====================================================================
         startCanvasRecording() {
             try {
-                const canvas = document.querySelector('canvas');
-                if (!canvas || typeof canvas.captureStream !== 'function') {
+                const sourceCanvas = window.renderer && window.renderer.domElement;
+                if (!sourceCanvas || typeof sourceCanvas.captureStream !== 'function' || typeof MediaRecorder === 'undefined') {
                     if (window.GameHUD) window.GameHUD.showToast('ℹ️ Tarayıcın doğrudan canvas kaydını desteklemiyor, harici ekran kaydedici kullanabilirsin.', 'system');
                     return;
                 }
 
-                const stream = canvas.captureStream(60);
+                const outputCanvas = document.createElement('canvas');
+                const aspect = this.format === '9:16' ? 9 / 16 : (this.format === '2.39:1' ? 2.39 : 16 / 9);
+                outputCanvas.width = aspect < 1 ? 720 : 1280;
+                outputCanvas.height = Math.round(outputCanvas.width / aspect);
+                const outputContext = outputCanvas.getContext('2d');
+                if (!outputContext) throw new Error('Video kompozisyon tuvali başlatılamadı.');
+
+                this.audio.init();
+                const audioContexts = [
+                    { owner: this.audio, context: this.audio.ctx },
+                    { owner: window.GameAudio, context: window.GameAudio && window.GameAudio.getContext() }
+                ];
+                const audioDestinations = audioContexts
+                    .filter(entry => entry.context && entry.context.createMediaStreamDestination)
+                    .map(entry => {
+                        const destination = entry.context.createMediaStreamDestination();
+                        entry.owner.recordDestination = destination;
+                        return destination;
+                    });
+
+                const videoStream = outputCanvas.captureStream(30);
+                const tracks = [...videoStream.getVideoTracks()];
+                audioDestinations.forEach(destination => tracks.push(...destination.stream.getAudioTracks()));
+                this.recordStream = new MediaStream(tracks);
+                this.recordCanvas = outputCanvas;
+                this.recordContext = outputContext;
                 this.recordedChunks = [];
 
                 let options = { mimeType: 'video/webm;codecs=vp9' };
-                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                if (!MediaRecorder.isTypeSupported || !MediaRecorder.isTypeSupported(options.mimeType)) {
                     options = { mimeType: 'video/webm;codecs=vp8' };
-                    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                    if (!MediaRecorder.isTypeSupported || !MediaRecorder.isTypeSupported(options.mimeType)) {
                         options = { mimeType: 'video/webm' };
                     }
                 }
 
-                this.mediaRecorder = new MediaRecorder(stream, options);
+                this.mediaRecorder = new MediaRecorder(this.recordStream, options);
                 this.mediaRecorder.ondataavailable = (e) => {
                     if (e.data && e.data.size > 0) {
                         this.recordedChunks.push(e.data);
@@ -890,13 +922,58 @@
 
                 this.mediaRecorder.onstop = () => {
                     this.saveRecordedVideoFile();
+                    if (this.recordStream) this.recordStream.getTracks().forEach(track => track.stop());
+                    this.recordStream = null;
+                    this.recordCanvas = null;
+                    this.recordContext = null;
+                    if (this.audio) this.audio.recordDestination = null;
+                    if (window.GameAudio) window.GameAudio.recordDestination = null;
                 };
 
-                this.mediaRecorder.start(200);
+                this.mediaRecorder.start(250);
                 this.isRecording = true;
+                const drawFrame = () => {
+                    if (!this.isRecording || !this.recordCanvas || !this.recordContext) return;
+                    const sourceWidth = sourceCanvas.width;
+                    const sourceHeight = sourceCanvas.height;
+                    const sourceAspect = sourceWidth / sourceHeight;
+                    let cropWidth = sourceWidth;
+                    let cropHeight = sourceHeight;
+                    let cropX = 0;
+                    let cropY = 0;
+                    if (sourceAspect > aspect) {
+                        cropWidth = sourceHeight * aspect;
+                        cropX = (sourceWidth - cropWidth) / 2;
+                    } else {
+                        cropHeight = sourceWidth / aspect;
+                        cropY = (sourceHeight - cropHeight) / 2;
+                    }
+                    outputContext.fillStyle = '#090604';
+                    outputContext.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
+                    outputContext.drawImage(sourceCanvas, cropX, cropY, cropWidth, cropHeight, 0, 0, outputCanvas.width, outputCanvas.height);
+
+                    const titleText = this.dom.mainTitle && this.dom.mainTitle.textContent.trim();
+                    const subtitleText = this.dom.subTitle && this.dom.subTitle.textContent.trim();
+                    if (this.showTitles && (titleText || subtitleText)) {
+                        const baseY = outputCanvas.height * 0.84;
+                        outputContext.textAlign = 'center';
+                        outputContext.shadowColor = '#000000';
+                        outputContext.shadowBlur = 10;
+                        outputContext.fillStyle = '#ffe08a';
+                        outputContext.font = `bold ${Math.max(20, outputCanvas.width * 0.035)}px system-ui`;
+                        if (titleText) outputContext.fillText(titleText, outputCanvas.width / 2, baseY, outputCanvas.width * 0.86);
+                        outputContext.fillStyle = '#fff4d1';
+                        outputContext.font = `${Math.max(14, outputCanvas.width * 0.018)}px system-ui`;
+                        if (subtitleText) outputContext.fillText(subtitleText, outputCanvas.width / 2, baseY + outputCanvas.height * 0.04, outputCanvas.width * 0.86);
+                        outputContext.shadowBlur = 0;
+                    }
+                    this.recordFrameId = requestAnimationFrame(drawFrame);
+                };
+                this.recordFrameId = requestAnimationFrame(drawFrame);
                 if (this.dom.recDot) this.dom.recDot.className = 'w-3.5 h-3.5 rounded-full bg-red-600 animate-ping';
             } catch (err) {
                 console.warn('Canvas recorder init error:', err);
+                if (window.GameHUD) window.GameHUD.showToast('Video kaydı başlatılamadı. Tarayıcı izinlerini ve WebM desteğini kontrol et.', 'danger');
             }
         }
 
@@ -905,6 +982,8 @@
                 this.mediaRecorder.stop();
                 this.isRecording = false;
             }
+            if (this.recordFrameId) cancelAnimationFrame(this.recordFrameId);
+            this.recordFrameId = null;
         }
 
         saveRecordedVideoFile() {
@@ -1049,7 +1128,7 @@
             if (t < 9.0) {
                 // Sahne 1: Göklerden Piramitlere Epik Dalış (0s - 9s)
                 this.triggerShotCut(1, 'braam');
-                this.updateTitle('✦ GODS OF EGYPT MMORPG ✦', 'Kadim Mısır Açık Dünyasına Hoş Geldin', 'Göklerden Piramitlere Dalış');
+                this.updateTitle('✦ GODS OF EGYPT ✦', 'Kadim Mısır Açık Dünyasına Hoş Geldin', 'Göklerden Piramitlere Dalış');
                 
                 const prog = t / 9.0;
                 const smooth = prog * prog * (3 - 2 * prog);
@@ -1057,12 +1136,13 @@
                 const startX = -120, startY = 85, startZ = -180;
                 const endX = 45, endY = 16, endZ = -45;
 
-                camera.position.set(
+                const cinematicPos = new THREE.Vector3(
                     THREE.MathUtils.lerp(startX, endX, smooth),
                     THREE.MathUtils.lerp(startY, endY, smooth),
                     THREE.MathUtils.lerp(startZ, endZ, smooth)
                 );
-                camera.lookAt(57, 1.2, 0);
+                const lookPos = new THREE.Vector3(57, 1.2, 0);
+                this.safeFrameCamera(camera, cinematicPos, lookPos, player, { minDistance: 2.6, maxHeight: 90 });
                 camera.fov = 68;
                 camera.updateProjectionMatrix();
 
@@ -1087,8 +1167,13 @@
                 const camY = (player ? player.root.position.y : 0) + 0.82;
                 const camZ = (player ? player.root.position.z : 0) - 5.2;
 
-                camera.position.set(camX, camY, camZ);
-                camera.lookAt(player ? player.root.position.x : 18, (player ? player.root.position.y : 0) + 1.35, (player ? player.root.position.z : 0) + 12.0);
+                const camPos = new THREE.Vector3(camX, camY, camZ);
+                const lookPos = new THREE.Vector3(
+                    player ? player.root.position.x : 18,
+                    (player ? player.root.position.y : 0) + 1.35,
+                    (player ? player.root.position.z : 0) + 12.0
+                );
+                this.safeFrameCamera(camera, camPos, lookPos, player, { minDistance: 2.6, maxHeight: 18 });
                 camera.fov = 50;
                 camera.updateProjectionMatrix();
 
@@ -1111,8 +1196,9 @@
                 const camZ = pz + Math.cos(orbitAngle) * dist;
                 const camY = py + 2.2 + Math.sin(prog * Math.PI) * 1.4;
 
-                camera.position.set(camX, camY, camZ);
-                camera.lookAt(px, py + 1.8, pz);
+                const orbitPos = new THREE.Vector3(camX, camY, camZ);
+                const orbitLook = new THREE.Vector3(px, py + 1.8, pz);
+                this.safeFrameCamera(camera, orbitPos, orbitLook, player, { minDistance: 2.4, maxHeight: 20 });
                 camera.fov = 46;
                 camera.updateProjectionMatrix();
 
@@ -1131,7 +1217,7 @@
             } else {
                 // Sahne 5: Büyük Final - Gökyüzü Panoraması ve Logo (36s - 45s)
                 this.triggerShotCut(5, 'braam');
-                this.updateTitle('✦ HEMEN ŞİMDİ OYNA! ✦', 'İndirme Yok • Tarayıcında Ücretsiz MMORPG', 'Büyük Final Panoraması');
+                this.updateTitle('✦ HEMEN ŞİMDİ OYNA! ✦', 'Tarayıcıda oynanabilir mitoloji prototipi', 'Büyük Final Panoraması');
                 
                 const prog = (t - 36.0) / 9.0;
                 const smooth = prog * prog * (3 - 2 * prog);
@@ -1281,6 +1367,40 @@
             camera.lookAt(20, 2.0, 0);
             camera.fov = 68;
             camera.updateProjectionMatrix();
+        }
+
+        // =====================================================================
+        // GÜVENLİ KAMERA KUTUSU: ÇAKIŞMA / İÇ İÇE GİRME / AŞIRI YAKINLAŞMA ÖNLENİR
+        // =====================================================================
+        safeFrameCamera(camera, desiredPos, lookAtPos, player, options = {}) {
+            if (!camera) return;
+            const minDistance = options.minDistance ?? 2.2;
+            const maxHeight = options.maxHeight ?? 90;
+            const safePos = desiredPos.clone();
+
+            if (player && player.root) {
+                const bodyCenter = new THREE.Vector3(
+                    player.root.position.x,
+                    player.root.position.y + (player.root.scale ? player.root.scale.y * 0.75 : 0.75),
+                    player.root.position.z
+                );
+                const toCam = safePos.clone().sub(bodyCenter);
+                const guardRadius = Math.max(minDistance, (player.root.scale ? player.root.scale.x : 1.0) * 1.25);
+                if (toCam.length() < guardRadius) {
+                    toCam.setLength(guardRadius);
+                    safePos.copy(bodyCenter.clone().add(toCam));
+                }
+                safePos.y = Math.max(player.root.position.y + 0.35, Math.min(maxHeight, safePos.y));
+            }
+
+            if (!this.lastCinePos) this.lastCinePos = safePos.clone();
+            if (!this.lastCineLook) this.lastCineLook = lookAtPos.clone();
+
+            this.lastCinePos.lerp(safePos, 0.12);
+            this.lastCineLook.lerp(lookAtPos, 0.18);
+
+            camera.position.copy(this.lastCinePos);
+            camera.lookAt(this.lastCineLook);
         }
 
         // =====================================================================

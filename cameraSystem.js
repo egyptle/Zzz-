@@ -13,9 +13,10 @@
             this.camPitch = 0.22;
             this.camDist = 8.5;
             this.desiredDist = 8.5;
-            this.minDist = 1.2;
+            this.minDist = 2.2;
             this.maxDist = 280.0;
             this.headBobTimer = 0;
+            this.bodyGuardDistance = 1.25;
             this.transitionAlpha = 1.0;
             this.targetAlpha = 1.0;
             this.currentCamPos = null;
@@ -85,6 +86,10 @@
                 return 3.42 * scaleY;
             } else if (role === 'horus_human') {
                 return 2.75 * scaleY;
+            } else if (['hathor', 'nephthys', 'isis', 'astarte', 'anat', 'bastet'].includes(role)) {
+                return 1.58 * scaleY;
+            } else if (['zaya', 'female_villager', 'dancer'].includes(role)) {
+                return 1.52 * scaleY;
             } else if (role === 'villager') {
                 return 1.45 * scaleY;
             } else {
@@ -130,10 +135,13 @@
             this.camPitch = Math.max(-1.42, Math.min(1.42, this.camPitch));
 
             if (this.isFirstPerson) {
-                // 1. ŞAHIS MODU: Karakter kendi içine girmesin diye ana gövdeyi gizle
-                player.root.visible = false;
+                // 1. ŞAHIS MODU: karakterin gövdesinin içine girilmesin; sadece baş ve göze odaklan
+                player.root.visible = true;
+                player.root.traverse && player.root.traverse((child) => {
+                    if (child.material) child.material.transparent = true;
+                    if (child.material) child.material.opacity = 0.92;
+                });
 
-                // Dinamik Yürüme / Koşma Baş Sallantısı (Head Bob)
                 if (moving) {
                     this.headBobTimer += delta * (8.5 * Math.max(0.45, speedMag || 1.0));
                 } else {
@@ -152,9 +160,9 @@
 
                 const targetPos = new THREE.Vector3(eyeX, eyeY, eyeZ);
                 const targetLook = new THREE.Vector3(
-                    eyeX + lookDirX * 50.0,
-                    eyeY + lookDirY * 50.0,
-                    eyeZ + lookDirZ * 50.0
+                    eyeX + lookDirX * 12.0,
+                    eyeY + lookDirY * 12.0,
+                    eyeZ + lookDirZ * 12.0
                 );
 
                 if (!this.currentCamPos) this.currentCamPos = targetPos.clone();
@@ -163,23 +171,45 @@
                 this.currentCamPos.lerp(targetPos, 0.45);
                 this.currentLookAt.lerp(targetLook, 0.55);
 
+                const bodyCenter = new THREE.Vector3(posX, posY + eyeHeight * 0.48, posZ);
+                const bodyToCam = this.currentCamPos.clone().sub(bodyCenter);
+                const bodyRadius = Math.max(0.95, (player.root && player.root.scale ? player.root.scale.x : 1.0) * 1.25);
+                if (bodyToCam.length() < bodyRadius) {
+                    bodyToCam.setLength(bodyRadius + 0.18);
+                    this.currentCamPos.copy(bodyCenter.clone().add(bodyToCam));
+                }
+
                 camera.position.copy(this.currentCamPos);
                 camera.lookAt(this.currentLookAt);
             } else {
-                // 3. ŞAHIS MODU
                 player.root.visible = true;
+                player.root.traverse && player.root.traverse((child) => {
+                    if (child.material) child.material.transparent = false;
+                    if (child.material) child.material.opacity = 1;
+                });
 
-                this.camDist = THREE.MathUtils.lerp(this.camDist, this.desiredDist, 0.12);
+                const scaleValue = player.root && player.root.scale ? Math.max(1.0, player.root.scale.x || 1.0) : 1.0;
+                const desiredDistance = Math.max(this.minDist, Math.min(this.desiredDist, this.maxDist));
+                this.camDist = THREE.MathUtils.lerp(this.camDist, desiredDistance, 0.12);
+
                 const focusX = posX;
                 const focusY = posY + eyeHeight * 0.85;
                 const focusZ = posZ;
 
-                const cx = focusX + Math.sin(this.camYaw) * Math.cos(this.camPitch) * this.camDist;
-                const cz = focusZ + Math.cos(this.camYaw) * Math.cos(this.camPitch) * this.camDist;
-                const cy = Math.max(posY + 0.45, focusY + Math.sin(this.camPitch) * this.camDist);
+                const offsetX = Math.sin(this.camYaw) * Math.cos(this.camPitch) * this.camDist;
+                const offsetZ = Math.cos(this.camYaw) * Math.cos(this.camPitch) * this.camDist;
+                const offsetY = Math.sin(this.camPitch) * this.camDist;
 
-                const targetPos = new THREE.Vector3(cx, cy, cz);
+                const targetPos = new THREE.Vector3(focusX + offsetX, Math.max(posY + 0.45, focusY + offsetY), focusZ + offsetZ);
                 const targetLook = new THREE.Vector3(focusX, focusY, focusZ);
+
+                const bodyCenter = new THREE.Vector3(posX, posY + eyeHeight * 0.5, posZ);
+                const bodyToCam = targetPos.clone().sub(bodyCenter);
+                const safeDist = Math.max(this.bodyGuardDistance + 0.15, scaleValue * 1.15);
+                if (bodyToCam.length() < safeDist) {
+                    bodyToCam.setLength(safeDist);
+                    targetPos.copy(bodyCenter.clone().add(bodyToCam));
+                }
 
                 if (!this.currentCamPos) this.currentCamPos = targetPos.clone();
                 if (!this.currentLookAt) this.currentLookAt = targetLook.clone();

@@ -287,10 +287,10 @@
                     <div class="mmo-chat-header">
                         <span class="flex items-center gap-1.5">
                             <span id="chat-icon" class="icon-nav"></span>
-                            <span>CANLI DİYAR SOHBETİ</span>
+                            <span>DİYAR GÜNLÜĞÜ · YEREL</span>
                         </span>
                         <div class="flex items-center gap-2">
-                            <span id="hud-online-count" class="text-[10px] text-emerald-400 font-bold">● 1,428 Aktif</span>
+                            <span id="hud-online-count" class="text-[10px] text-amber-300 font-bold">TEK OYUNCU</span>
                             <button onclick="window.GameHUD.toggleChatMinimize()" class="text-amber-400 hover:text-white px-1.5 font-mono text-sm leading-none font-black" title="Küçült / Büyüt" id="hud-chat-toggle-btn">–</button>
                         </div>
                     </div>
@@ -304,10 +304,12 @@
                         <!-- Mesajlar dinamik akar -->
                     </div>
                     <div class="mmo-chat-input-bar">
-                        <input id="hud-chat-input" type="text" placeholder="Mesaj yaz veya '/dua', '/altin'... (Enter: Gönder)" class="w-full bg-black/60 border border-amber-500/40 rounded-lg px-2.5 py-1 text-xs text-amber-100 placeholder-amber-400/40 focus:outline-none focus:border-amber-400">
+                        <input id="hud-chat-input" type="text" placeholder="Yerel oyun günlüğüne not yaz..." class="w-full bg-black/60 border border-amber-500/40 rounded-lg px-2.5 py-1 text-xs text-amber-100 placeholder-amber-400/40 focus:outline-none focus:border-amber-400">
                         <button onclick="window.GameHUD.sendChatMsg()" class="gold-btn px-3 py-1 rounded-lg text-xs font-black">Gönder</button>
                     </div>
                 </div>
+
+                <div id="quest-tracker" aria-live="polite"></div>
 
                 <!-- ========================================== -->
                 <!-- MOBİL TOUCH FALLBACK (Sadece Mobilde Görünür) -->
@@ -340,6 +342,7 @@
             document.body.appendChild(container);
             this.adjustJoystickPosition();
             this.initializeSVGIcons();
+            if (window.TutorialSystem) window.TutorialSystem.updateQuestTracker();
         }
 
         adjustJoystickPosition() {
@@ -603,7 +606,7 @@
             const staminaText = document.getElementById('hud-stamina-text');
             const avatarIcon = document.getElementById('hud-avatar-icon');
 
-            if (nameEl) nameEl.textContent = p.name;
+            if (nameEl) nameEl.textContent = p.name || 'Bek';
             if (roleEl) roleEl.textContent = this.getRoleLabel(p.role);
             if (levelEl) levelEl.textContent = `LVL ${p.level}`;
             
@@ -627,6 +630,8 @@
                 else if (p.role === 'god_set' || p.role === 'set_god' || p.role === 'set') iconName = 'set';
                 else if (p.role === 'horus_human') iconName = 'palace';
                 else if (p.role === 'villager') iconName = 'wheat';
+                else if (['zaya', 'hathor', 'nephthys', 'isis', 'astarte', 'anat', 'bastet', 'dancer'].includes(p.role)) iconName = 'sparkle';
+                else if (p.role === 'female_villager') iconName = 'wheat';
                 
                 if (typeof getIcon === 'function') {
                     avatarIcon.innerHTML = getIcon(iconName, 'large');
@@ -680,6 +685,24 @@
                     return 'Set (Altın Çakal 3.6m)';
                 case 'horus_human':
                     return 'İnsan Horus (2.8m Prens)';
+                case 'zaya':
+                    return 'Zaya (Ölümlü Gezgin)';
+                case 'hathor':
+                    return 'Hathor (Aşk ve Bereket Tanrıçası)';
+                case 'nephthys':
+                    return 'Nephthys (Koruyucu Tanrıça)';
+                case 'isis':
+                    return 'İsis (Büyü Kraliçesi)';
+                case 'astarte':
+                    return 'Astarte (Savaş Tanrıçası)';
+                case 'anat':
+                    return 'Anat (Fırtına Tanrıçası)';
+                case 'bastet':
+                    return 'Bastet (Kedi Tanrıçası)';
+                case 'female_villager':
+                    return 'Nil Köylüsü';
+                case 'dancer':
+                    return 'Tapınak Dansçısı';
                 case 'villager':
                     return 'Mısırlı Köylü';
                 case 'bek':
@@ -733,9 +756,9 @@
                 shortText = 'İsyan Et';
             } else {
                 // Mısır Açık Dünya
-                if (p.role.startsWith('god')) {
+                if (p.role.startsWith('god') || ['hathor', 'nephthys', 'isis', 'astarte', 'anat', 'bastet'].includes(p.role)) {
                     iconKey = 'lightning';
-                    mainText = 'İLAHİ FIRTINA / SALDIRI (E)';
+                    mainText = 'İLAHİ GÜÇLE SALDIR (E)';
                     shortText = 'İlahi Saldırı';
                 } else {
                     iconKey = 'wheat';
@@ -816,7 +839,10 @@
                 this.showToast('Set kükredi: "Bana altın sunmayan ölümlüler ezilecektir!"', 'danger');
             } else {
                 // Açık Dünya: Gerçek MMORPG Kaynak Toplama, Hasat ve Madencilik
-                if (window.EgyptGatheringEngine) {
+                const divineRoles = ['god_horus', 'god_set', 'horus_god', 'set_god', 'hathor', 'nephthys', 'isis', 'astarte', 'anat', 'bastet'];
+                if (divineRoles.includes(state.player.role)) {
+                    if (window.EgyptCombatEngine) window.EgyptCombatEngine.performAttack();
+                } else if (window.EgyptGatheringEngine) {
                     window.EgyptGatheringEngine.interactClosest();
                 } else {
                     this.showToast('⚠️ Yakınında toplanacak kaynak yok! Nil buğday tarlasına yaklaş!', 'danger');
@@ -1242,11 +1268,11 @@
             }
         }
 
-        contributeObelisk() {
+        contributeObelisk(openAfterContribution = true) {
             const res = window.GameState.contributeToObelisk(5, 5);
             if (res.success) {
                 this.showToast(`Obelisk %${res.progress} seviyesine yükseltildi!`, 'gold');
-                this.openModal('obelisk');
+                if (openAfterContribution) this.openModal('obelisk');
             } else {
                 this.showToast(res.msg, 'danger');
             }

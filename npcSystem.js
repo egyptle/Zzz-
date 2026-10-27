@@ -343,6 +343,48 @@
             this.showDialog(npc.dialogues[0]);
         }
 
+        startCharacterDialog(character) {
+            if (!character) return;
+            const persona = character.personality || {};
+            const roleIcons = {
+                thief: 'player',
+                farmer: 'wheat',
+                merchant: 'inventory',
+                guard: 'attack',
+                priest: 'obelisk',
+                goddess: 'horus',
+                performer: 'sparkle',
+                noble: 'horus',
+                god: character.role === 'set_god' ? 'set' : 'horus'
+            };
+
+            this.activeNPC = {
+                id: character.id,
+                name: character.name,
+                role: character.title || 'Mısırlı',
+                portrait: roleIcons[character.persona] || 'player',
+                dialogues: [
+                    {
+                        id: 'greeting',
+                        text: persona.greeting || 'Nil kıyısında işler hiç durmaz. Sana nasıl yardım edebilirim?',
+                        options: [
+                            { text: 'Şehirde neler oluyor?', next: 'rumor' },
+                            { text: 'İşin nasıl gidiyor?', next: 'work' },
+                            { text: 'Bir Mısır şakası anlat.', next: 'joke' },
+                            { text: 'Görev panosunu aç', action: 'open_quests', next: 'farewell' },
+                            { text: 'Görüşürüz', next: 'farewell' }
+                        ]
+                    },
+                    { id: 'rumor', text: persona.rumor || 'Pazarda herkes Set\'in yeni vergisini konuşuyor.', options: [{ text: 'İyi yolculuklar', next: 'farewell' }, { text: 'Bir şey daha soracağım', next: 'greeting' }] },
+                    { id: 'work', text: persona.work || 'Bugün de Nil\'in bereketi için çalışıyorum.', options: [{ text: 'Kolay gelsin', next: 'farewell' }, { text: 'Başka bir şey soracağım', next: 'greeting' }] },
+                    { id: 'joke', text: persona.joke || 'Bir rahip neden Nil\'e küsmüş? Fazla akıntıya kapılmış!', options: [{ text: 'Güldüm, sağ ol', next: 'farewell' }, { text: 'Daha iyisini dene', next: 'greeting' }] },
+                    { id: 'farewell', text: persona.farewell || 'Yolun açık, kesen kapalı olsun. Şaka yaptım... çoğunlukla.', options: [] }
+                ]
+            };
+
+            this.showDialog(this.activeNPC.dialogues[0]);
+        }
+
         showDialog(dialogue) {
             // Remove existing dialog
             const existing = document.getElementById('npc-dialog-overlay');
@@ -352,7 +394,7 @@
             overlay.id = 'npc-dialog-overlay';
             overlay.className = 'fixed inset-0 z-[90] flex items-center justify-center bg-black/60 backdrop-blur-sm';
 
-            const portraitHtml = typeof getIcon === 'function' ? getIcon(npc.portrait, 'large') : '';
+            const portraitHtml = typeof getIcon === 'function' ? getIcon(this.activeNPC.portrait, 'large') : '';
 
             overlay.innerHTML = `
                 <div class="npc-dialog-content animate-fade-in max-w-lg w-full mx-4">
@@ -418,6 +460,9 @@
             console.log('Executing action:', action);
 
             switch(action) {
+                case 'open_quests':
+                    if (window.GameHUD) window.GameHUD.openModal('quests');
+                    break;
                 case 'start_quest_tutorial_1':
                     if (window.TutorialSystem) {
                         window.TutorialSystem.startQuest('tutorial_1');
